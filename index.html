@@ -792,10 +792,16 @@ function renderAll(){
   renderMistakes();
   renderSettings();
 }
+function cdVal(t, d){
+  if(!d) return '--';
+  const n = diffDays(t, d);
+  if(!isFinite(n)) return '--';
+  return String(Math.max(0, n));
+}
 function renderHeader(){
   const t = today();
-  $('#cdObj').textContent = Math.max(0, diffDays(t, S.examDate));
-  $('#cdSub').textContent = Math.max(0, diffDays(t, S.subjectDate));
+  $('#cdObj').textContent = cdVal(t, S.examDate);
+  $('#cdSub').textContent = cdVal(t, S.subjectDate);
   $('#cdWeek').textContent = studyWeeks();
 }
 
@@ -913,7 +919,7 @@ function renderStageBox(){
 
 function renderGantt(){
   const base = S.subjects[0].start;
-  const end = S.examDate;
+  const end = S.examDate || S.subjects[S.subjects.length-1].end;
   const total = diffDays(base, end);
   const todayStr = today();
   let html = '';
@@ -1485,12 +1491,12 @@ if(document.getElementById('saveNews')) document.getElementById('saveNews').addE
 
 // 设置
 $('#saveSet').addEventListener('click', ()=>{
-  S.examDate = $('#stObj').value || S.examDate;
-  S.subjectDate = $('#stSub').value || S.subjectDate;
+  S.examDate = $('#stObj').value;
+  S.subjectDate = $('#stSub').value;
   S.startDate = $('#stStart').value || S.startDate;
   S.hoursWorkday = parseFloat($('#stWd').value) || 3;
   S.hoursWeekend = parseFloat($('#stWe').value) || 5;
-  save(); renderHeader(); renderOverview();
+  save(); renderAll();
   alert('设置已保存');
 });
 
