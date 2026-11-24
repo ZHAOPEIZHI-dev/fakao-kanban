@@ -631,6 +631,7 @@ window.QB_SEED = [{"year":"2021","paper":"卷一","no":1,"type":"单选","subjec
 <script>
 /* ================= 数据层 ================= */
 const KEY = 'fakao2027_v3';
+const QKEY = 'fakao2027_v3_qbank';   // 题库独立键：体积大、改动少，不与打卡数据共用一个键
 const DEF = {
   examDate: '2027-09-12',
   subjectDate: '2027-10-17',
@@ -740,18 +741,155 @@ function renderAccounts(){
         '<td style="'+th+';white-space:nowrap;color:var(--muted)">'+esc(stage||'—')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
+/* ============ 存储加固 v6 ============
+   1) 拆键：题库单独存 QKEY，主键只留打卡/错题/计划等小数据，避免每次约 1MB 全量重写
+   2) save 加固：写前合并磁盘记录 + 备份 + 写入回读校验 + 失败明确报警（不再静默）
+   3) 跨实例同步：监听 storage，多标签/多入口互不覆盖
+====================================== */
+var QB = [];              // 题库内存副本
+var STORAGE_ERR = '';     // 最近一次存储错误
+function QB_load(){
+  try{
+    var raw = localStorage.getItem(QKEY);
+    var arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ STORAGE_ERR = '读取题库失败：' + e.message; return []; }
+}
+function QB_save(){
+  try{
+    localStorage.setItem(QKEY, JSON.stringify(QB));
+    return true;
+  }catch(e){
+    STORAGE_ERR = '保存题库失败：' + e.message;
+    alert('题库保存失败：' + e.message + '\n（本地存储空间可能已满）');
+    return false;
+  }
+}
 function load(){
+  var o = null, bak = null;
   try{
     const raw = localStorage.getItem(KEY);
-    if(!raw) return JSON.parse(JSON.stringify(DEF));
-    const o = JSON.parse(raw);
-    // 兜底补字段
-    const d = JSON.parse(JSON.stringify(DEF));
-    Object.keys(d).forEach(k=>{ if(o[k]===undefined) o[k]=d[k]; });
-    return o;
-  }catch(e){ return JSON.parse(JSON.stringify(DEF)); }
+    if(!raw){
+      o = JSON.parse(JSON.stringify(DEF));
+    }else{
+      o = JSON.parse(raw);
+      if(!o || typeof o !== 'object') throw new Error('数据格式异常');
+      const d = JSON.parse(JSON.stringify(DEF));
+      Object.keys(d).forEach(k=>{ if(o[k]===undefined) o[k]=d[k]; });
+    }
+  }catch(e){
+    // 不静默回落：先试备份键，再明确告知用户
+    try{ bak = localStorage.getItem(KEY + '_bak'); }catch(e2){}
+    if(bak){
+      try{ o = JSON.parse(bak); }catch(e3){ o = null; }
+    }
+    if(!o) o = JSON.parse(JSON.stringify(DEF));
+    var msg = '读取本地数据失败：' + e.message + '\n' +
+      (bak && o ? '已自动从上次备份恢复（备份时点可能略早）。' : '备份不可用，已载入初始数据。');
+    STORAGE_ERR = msg;
+    setTimeout(function(){ alert(msg); }, 600);
+  }
+  // 题库拆键迁移：旧版题库存在主键里，迁到独立键，主键随之瘦身
+  try{
+    var qmain = Array.isArray(o.qbank) ? o.qbank : [];
+    if(qmain.length){
+      var qexist = localStorage.getItem(QKEY), qexisting = [];
+      if(qexist){ try{ qexisting = JSON.parse(qexist) || []; }catch(e4){ qexisting = []; } }
+      if(!qexisting.length) localStorage.setItem(QKEY, JSON.stringify(qmain));
+      o.qbank = [];
+      localStorage.setItem(KEY, JSON.stringify(o));
+    }
+  }catch(e5){ /* 迁移失败不影响打卡数据，题库仍保留在主键中 */ }
+  return o;
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function mergeFromDisk(){
+  // 写入前把磁盘上已有的打卡/错题按 id 并入内存，避免旧实例或另一标签页刚存的记录被整体覆盖
+  try{
+    var raw = localStorage.getItem(KEY); if(!raw) return;
+    var cur = JSON.parse(raw); if(!cur) return;
+    ['logs','mistakes'].forEach(function(field){
+      var mine = S[field] = S[field] || [];
+      var seen = {}; mine.forEach(function(x){ if(x && x.id) seen[x.id] = 1; });
+      (cur[field] || []).forEach(function(x){
+        if(x && x.id && !seen[x.id]){ seen[x.id] = 1; mine.push(x); }
+      });
+    });
+  }catch(e){}
+}
+function save(){
+  mergeFromDisk();          // 先合并再写
+  S.qbank = [];             // 主键不保存题库（已在独立键）
+  var json;
+  try{ json = JSON.stringify(S); }
+  catch(e){ STORAGE_ERR = '数据序列化失败：' + e.message; alert('保存失败：' + e.message); return false; }
+  try{
+    var prev = localStorage.getItem(KEY);
+    if(prev && prev.length > 2){
+      try{ localStorage.setItem(KEY + '_bak', prev); }catch(e0){}   // 留存上一份快照
+    }
+    localStorage.setItem(KEY, json);
+    var back = localStorage.getItem(KEY);
+    if(back !== json) throw new Error('写入后回读校验不一致');
+    STORAGE_ERR = '';
+    return true;
+  }catch(e){
+    var reason = (e && (e.name === 'QuotaExceededError' || e.code === 22)) ? '本地存储空间已满' : (e.message || String(e));
+    STORAGE_ERR = '保存失败：' + reason;
+    alert('保存失败：' + reason + '\n本次改动可能未写入，请先不要关闭页面，并把此提示截图给 Marvis。');
+    return false;
+  }
+}
+/* 跨实例同步：另一标签页/入口写入了数据，本实例合并并刷新，不覆盖对方记录 */
+window.addEventListener('storage', function(e){
+  if(!e.key) return;
+  if(e.key === QKEY){ QB = QB_load(); renderQB(); return; }
+  if(e.key !== KEY) return;
+  try{
+    var cur = JSON.parse(e.newValue || 'null');
+    if(!cur) return;
+    ['logs','mistakes'].forEach(function(field){
+      var mine = S[field] = S[field] || [];
+      var seen = {}; mine.forEach(function(x){ if(x && x.id) seen[x.id] = 1; });
+      (cur[field] || []).forEach(function(x){
+        if(x && x.id && !seen[x.id]){ seen[x.id] = 1; mine.push(x); }
+      });
+    });
+    renderAll(); renderQB();
+  }catch(err){}
+});
+/* 申请持久化存储：降低系统清理站点数据的概率 */
+(function(){
+  try{
+    if(navigator.storage && navigator.storage.persist && navigator.storage.persisted){
+      navigator.storage.persisted().then(function(p){ if(!p) return navigator.storage.persist(); }).catch(function(){});
+    }
+  }catch(e){}
+})();
+/* 补录 2026-11-23 缺失打卡（用户授权代补，幂等，仅插入一次） */
+function backfill_20261123(){
+  var D = '2026-11-23', FK = KEY + '_backfill_1123';
+  try{ if(localStorage.getItem(FK) === 'done') return; }catch(e){}
+  var exists = (S.logs || []).some(function(l){ return l.date === D; });
+  if(!exists){
+    var plan = null;
+    try{ (window.DAILY_PLAN || []).forEach(function(x){ if(x.date === D) plan = x; }); }catch(e){}
+    var sub = (S.subjects || []).filter(function(x){ return x.id === 'minfa'; })[0] || {};
+    var segs = (plan && plan.segments && plan.segments.length)
+      ? plan.segments.map(function(s){ return s.title; }).join(' / ')
+      : '第一编·第一章·第二节 身份权 / 第三节 财产权 / 第四节 其他分类';
+    var ch = segs + (plan && plan.from ? ('（P' + plan.from + '-' + plan.to + '）') : '');
+    S.logs.push({
+      id: 'lbk20261123', date: D, subject: '民法（上册）', sid: 'minfa',
+      chapter: ch,
+      hours: (plan && plan.hours) || 3,
+      lec: Math.max(0, +(sub.lec || 0)),
+      quiz: Math.max(0, +(sub.quiz || 0)),
+      note: '按当日计划补录（2026-11-24 由 Marvis 代补；实际进度可在历史记录中核对，或删除后重新填写）'
+    });
+    save();
+  }
+  try{ localStorage.setItem(FK, 'done'); }catch(e){}
+}
 
 /* ================= 工具 ================= */
 const $ = s => document.querySelector(s);
@@ -1250,7 +1388,7 @@ function renderSubjects(){
 
 function renderLogs(){
   const t = today();
-  $('#lgDate').value = t;
+  if(!$('#lgDate').value) $('#lgDate').value = t;   // 只补默认值，不覆盖用户已选日期（修 v5 切页丢日期）
   const sel = $('#lgSub');
   sel.innerHTML = S.subjects.filter(x=>HIDDEN_STAGE.indexOf(x.id)<0)
     .map(s=>'<option value="'+s.id+'">'+esc(s.name)+'（'+s.teacher+'）</option>').join('');
@@ -1278,7 +1416,7 @@ function plusDays(ds,n){
 function dueList(){ return (S.mistakes||[]).filter(m=> !m.done && m.due && m.due<=today()); }
 
 function renderMistakes(){
-  $('#msDate').value = today();
+  if(!$('#msDate').value) $('#msDate').value = today();
   const sel = $('#msSub');
   if(!sel.options.length){
     sel.innerHTML = S.subjects.filter(x=>HIDDEN_STAGE.indexOf(x.id)<0)
@@ -1453,20 +1591,20 @@ function qbParse(raw){
 }
 
 function qbAdd(list){
-  S.qbank = S.qbank || [];
+  QB = QB || [];
   let added = 0, dup = 0;
   list.forEach(q=>{
     q.stem = (q.stem||'').trim();
     if(!q.stem) return;
     const key = (q.year||'') + '|' + (q.subject||'') + '|' + q.stem.slice(0,40);
-    if(S.qbank.some(x=> ((x.year||'')+'|'+(x.subject||'')+'|'+x.stem.slice(0,40)) === key)){ dup++; return; }
-    S.qbank.push({id:'q'+Date.now()+Math.floor(Math.random()*1000),
+    if(QB.some(x=> ((x.year||'')+'|'+(x.subject||'')+'|'+x.stem.slice(0,40)) === key)){ dup++; return; }
+    QB.push({id:'q'+Date.now()+Math.floor(Math.random()*1000),
       year:q.year||'', paper:q.paper||'', subject:q.subject||'', detail:q.detail||'', type:q.type||'单选',
       stem:q.stem, opts:q.opts||[], answer:q.answer||'', analysis:q.analysis||'',
       done:0, correct:0, inPool:0});
     added++;
   });
-  save();
+  QB_save();
   return {added:added, dup:dup};
 }
 
@@ -1474,16 +1612,16 @@ function qbAdd(list){
 function seedQBank(){
   if(!window.QB_SEED || !window.QB_SEED.length) return {added:0};
   if(S.qbSeedOff) return {added:0};
-  S.qbank = S.qbank || [];
+  QB = QB || [];
   const keyOf = q => (q.year||'') + '|' + (q.subject||'') + '|' + String(q.stem||'').slice(0,40);
-  const keys = new Set(S.qbank.map(keyOf));
+  const keys = new Set(QB.map(keyOf));
   const need = window.QB_SEED.filter(q => !keys.has(keyOf(q)));
   if(!need.length) return {added:0};
   return qbAdd(need);
 }
 
 function renderQB(){
-  const bank = S.qbank || (S.qbank=[]);
+  const bank = QB || (QB=[]);
   const done = bank.filter(q=>q.done);
   const right = done.filter(q=>q.correct);
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
@@ -1550,7 +1688,7 @@ function initQB(){
   });
   document.getElementById('qbClear').addEventListener('click', ()=>{
     if(!confirm('确认清空整个真题库？该操作不可撤销，错题池不受影响。清空后将停止自动载入内置真题库，可用「恢复内置题库」重新载入。')) return;
-    S.qbank = []; S.qbSeedOff = 1; save(); renderQB();
+    QB = []; S.qbSeedOff = 1; QB_save(); save(); renderQB();
     document.getElementById('qbMsg').textContent = '题库已清空；点「恢复内置题库」可重新载入 2021-2025 真题。';
   });
   const rh = document.getElementById('qbReseed');
@@ -1567,7 +1705,7 @@ function initQB(){
   document.addEventListener('click', e=>{
     const b = e.target.closest('[data-qbact]');
     if(!b) return;
-    const q = (S.qbank||[]).find(x=>x.id===b.dataset.id);
+    const q = (QB||[]).find(x=>x.id===b.dataset.id);
     if(!q) return;
     const act = b.dataset.qbact;
     if(act==='right'){ q.done=1; q.correct=1; }
@@ -1588,7 +1726,7 @@ function initQB(){
       }
     }
     if(act==='reset'){ q.done=0; q.correct=0; }
-    save(); renderQB(); renderOverview();
+    QB_save(); save(); renderQB(); renderOverview();
   });
 }
 
@@ -1692,9 +1830,9 @@ $('#saveLog').addEventListener('click', ()=>{
   sub.quiz = Math.max(sub.quiz, quiz);
   save();
 
-  $('#lgHours').value=''; $('#lgChap').value=''; $('#lgLec').value=''; $('#lgQuiz').value=''; $('#lgNote').value='';
+  $('#lgDate').value = today(); $('#lgHours').value=''; $('#lgChap').value=''; $('#lgLec').value=''; $('#lgQuiz').value=''; $('#lgNote').value='';
   renderLogs(); renderOverview(); renderSubjects(); renderGantt();
-  alert('已保存，进度已更新');
+  alert(STORAGE_ERR ? ('已保存（注意：' + STORAGE_ERR + '）') : '已保存，进度已更新，本地存储校验通过');
 });
 
 // 删除打卡
@@ -1831,6 +1969,8 @@ document.addEventListener('click', e=>{
 document.addEventListener('DOMContentLoaded', ()=>{ renderDailyList(); });
 
 /* ================= 启动 ================= */
+QB = QB_load();               // 题库走独立键
+backfill_20261123();          // 代补 2026-11-23 打卡（幂等）
 renderAll();
 renderDailyList();
 seedQBank();
