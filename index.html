@@ -373,6 +373,20 @@ body.scrolled .brand h1{font-size:14.5px}
       </div>
     </div>
 
+    <div class="card" id="briefCard">
+      <div class="card-h">
+        <div class="card-t">每日晨报</div>
+        <div class="card-x" id="briefMeta">--</div>
+      </div>
+      <div id="briefBox"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost sm" id="copyBrief">复制晨报文本</button>
+        <button class="btn ghost sm" id="briefHistBtn">往期晨报</button>
+        <span class="card-x">每天首次打开自动生成 · 数据取自本机计划与打卡</span>
+      </div>
+      <div id="briefHist" class="hidden" style="margin-top:12px"></div>
+    </div>
+
     <div class="card">
       <div class="card-h">
         <div class="card-t">今日任务清单</div>
@@ -786,9 +800,197 @@ function studyWeeks(){
 }
 
 /* ================= 渲染 ================= */
+
+/* ================= 每日晨报 ================= */
+let BRIEF_DATE = null;
+
+function briefPlanSegs(plan){
+  if(!plan || !plan.segments) return [];
+  return plan.segments.map(s=>{
+    const pages = s.from ? ('p.' + s.from + (s.to > s.from ? ' - p.' + s.to : '')) : '';
+    return {title:s.title, pages:pages};
+  });
+}
+function streakFrom(t){
+  // 从 t 起往前数连续打卡天数；t 当日未打卡则从 t-1 起算
+  let n = 0, d = t;
+  if(!S.logs.some(l=>l.date===d && +l.hours>0)) d = addDays(d,-1);
+  for(let i=0;i<500;i++){
+    if(S.logs.some(l=>l.date===d && +l.hours>0)){ n++; d = addDays(d,-1); } else break;
+  }
+  return n;
+}
+function briefOf(date){
+  const plan = DAILY_PLAN.find(x=>x.date===date) || null;
+  let stage = null;
+  for(let i=0;i<S.subjects.length;i++){
+    const x = S.subjects[i];
+    if(date >= x.start && date <= x.end){ stage = x; break; }
+  }
+  if(!stage && date === today()) stage = currentStage() || null;
+  const prev = addDays(date,-1);
+  const pLogs = S.logs.filter(l=>l.date===prev);
+  const pHours = Math.round(pLogs.reduce((a,b)=>a+ +b.hours,0)*10)/10;
+  const pTarget = targetHours(prev);
+  const pListen = pLogs.reduce((a,b)=>a+ +b.listen,0);
+  const pQuiz = pLogs.reduce((a,b)=>a+ +b.quiz,0);
+  const dObj = diffDays(date, S.examDate);
+  const dSub = diffDays(date, S.subjectDate);
+  const nextPlan = DAILY_PLAN.find(function(x){ return x.date>date; }) || null;
+  // 本周累计（以 date 所在周计）
+  const wEnd = pd(date), dow = wEnd.getDay()===0?6:wEnd.getDay()-1;
+  const mon = addDays(date,-dow);
+  let wSum = 0;
+  S.logs.forEach(l=>{ if(l.date>=mon && l.date<=date) wSum += +l.hours; });
+  wSum = Math.round(wSum*10)/10;
+  const news = NEWS_SEED.filter(function(n){ return n.date<=date; }).sort(function(a,b){ return a.date<b.date?1:-1; }).slice(0,3);
+  return {date, plan, stage, prev, pLogs, pHours, pTarget, pListen, pQuiz, dObj, dSub, nextPlan, wSum, news, streak: streakFrom(date)};
+}
+
+function briefText(b){
+  const L = [];
+  const wd = ['周日','周一','周二','周三','周四','周五','周六'][pd(b.date).getDay()];
+  L.push('【法考晨报】' + b.date + ' ' + wd);
+  L.push('距客观题 ' + Math.max(0,b.dObj) + ' 天 / 距主观题 ' + Math.max(0,b.dSub) + ' 天');
+  L.push('');
+  if(b.plan){
+    L.push('今日任务（' + (b.plan.part||'') + ' ' + (b.plan.pages) + ' 页 · 约 ' + b.plan.hours + 'h）');
+    briefPlanSegs(b.plan).forEach((s,i)=> L.push('  ' + (i+1) + '. ' + s.title + (s.pages? '（' + s.pages + '）':'')));
+    L.push('  看讲义 ' + b.plan.read + 'h / 听课 ' + b.plan.listen + 'h / 做题 ' + b.plan.quiz + 'h');
+  }else{
+    L.push('今日无当日页计划，按当前阶段「' + (b.stage?b.stage.name:'-') + '」自主推进');
+  }
+  L.push('');
+  L.push('昨日复盘（' + b.prev + '）：' + (b.pLogs.length? ('打卡 ' + b.pLogs.length + ' 条 ' + b.pHours + 'h / 目标 ' + b.pTarget + 'h') : '无打卡记录')
+      + (b.pLogs.length ? (b.pHours>=b.pTarget ? ' · 已达标' : ' · 差 ' + Math.round((b.pTarget-b.pHours)*10)/10 + 'h') : ''));
+  L.push('连续打卡 ' + b.streak + ' 天 · 本周 ' + b.wSum + 'h / 25h');
+  if(b.news.length){
+    L.push('');
+    L.push('资讯更新');
+    b.news.forEach(n=> L.push('  ' + n.date + ' ' + n.subject + '·' + n.teacher + '：' + n.update));
+  }
+  if(b.nextPlan){
+    L.push('');
+    L.push('明日：' + b.nextPlan.wd + ' ' + b.nextPlan.pages + ' 页 · ' + (b.nextPlan.segments[0]? b.nextPlan.segments[0].title : ''));
+  }
+  return L.join('\n');
+}
+
+function briefTip(b){
+  const tips = [];
+  if(b.pLogs.length && b.pHours < b.pTarget){
+    tips.push('昨天差 ' + (Math.round((b.pTarget-b.pHours)*10)/10) + 'h 未达标，今天把补漏塞进通勤和午休两段碎片时间，别攒到周末。');
+  }else if(!b.pLogs.length && b.date > S.startDate){
+    tips.push('昨天没有打卡记录。当天任务当天清，回头补的讲义没人替你消化。');
+  }else if(b.pLogs.length && b.pHours >= b.pTarget){
+    tips.push('昨天达标了，节奏保持住，今天先听完对应的精讲再做当章真题。');
+  }
+  if(b.plan && b.plan.pages >= 10){
+    tips.push('今日 ' + b.plan.pages + ' 页偏多，建议拆成上午、下午、晚上三段，每段结束立刻做 10 道当章题。');
+  }
+  if(b.streak >= 7) tips.push('已连续打卡 ' + b.streak + ' 天，这是目前最值钱的资产，别断。');
+  if(!tips.length) tips.push('按当日计划推进，学哪门做哪门的题。');
+  return tips.slice(0,2);
+}
+
+function renderBrief(){
+  const t = today();
+  const box = document.getElementById('briefBox');
+  if(!box) return;
+  const hist = document.getElementById('briefHist');
+  const days = [];
+  for(let i=0;i<7;i++) days.push(addDays(t,-i));
+  if(!BRIEF_DATE || days.indexOf(BRIEF_DATE) < 0) { BRIEF_DATE = t; if(hist) hist.classList.add('hidden'); }
+
+  const b = briefOf(BRIEF_DATE);
+  const wd = ['周日','周一','周二','周三','周四','周五','周六'][pd(b.date).getDay()];
+  const meta = document.getElementById('briefMeta');
+  if(meta) meta.textContent = b.date + ' ' + wd + ' · 距客观题 ' + Math.max(0,b.dObj) + ' 天' + (BRIEF_DATE===t ? ' · 今日' : ' · 往期');
+
+  let html = '';
+  if(b.plan){
+    html += '<div class="grid g4" style="margin-bottom:14px">' +
+      '<div class="stat"><div class="k">当日页数</div><div class="v">' + b.plan.pages + '<small>页</small></div><div class="d">' + (b.plan.part||'') + ' · ' + dailyTypeLabel(b.plan.type) + '</div></div>' +
+      '<div class="stat"><div class="k">看讲义</div><div class="v">' + b.plan.read + '<small>h</small></div><div class="d">通读＋标注</div></div>' +
+      '<div class="stat"><div class="k">听课</div><div class="v">' + b.plan.listen + '<small>h</small></div><div class="d">' + (b.stage ? b.stage.teacher + ' 精讲对应章节' : '对应章节') + '</div></div>' +
+      '<div class="stat"><div class="k">做题</div><div class="v">' + b.plan.quiz + '<small>h</small></div><div class="d">当章真题</div></div>' +
+      '</div>';
+    const segs = briefPlanSegs(b.plan);
+    html += segs.map(s=> '<div class="task"><div class="tx"><b>' + esc(s.title) + '</b>' +
+      (s.pages? '<div class="mt">' + esc(s.pages) + '</div>' : '') + '</div></div>').join('');
+  }else{
+    html += '<div class="empty">该日不在每日页计划区间内' + (b.stage? '，按当前阶段「' + esc(b.stage.name) + '」自主推进' : '') + '</div>';
+  }
+
+  const yState = b.pLogs.length
+    ? ('打卡 ' + b.pLogs.length + ' 条 ' + b.pHours + 'h / 目标 ' + b.pTarget + 'h · ' +
+       (b.pHours>=b.pTarget ? '已达标' : '差 ' + (Math.round((b.pTarget-b.pHours)*10)/10) + 'h'))
+    : '无打卡记录';
+  html += '<table class="tbl" style="margin-top:14px"><thead><tr><th>上一日复盘</th><th>连续打卡</th><th>本周累计</th></tr></thead><tbody><tr>' +
+    '<td>' + esc(b.prev) + ' · ' + esc(yState) + '</td>' +
+    '<td>' + b.streak + ' 天</td>' +
+    '<td>' + b.wSum + 'h / 25h</td>' +
+    '</tr></tbody></table>';
+
+  if(b.news.length){
+    html += '<div style="margin-top:14px"><div class="card-x" style="margin-bottom:8px">资讯更新</div>' +
+      b.news.map(n=> '<div class="task"><div class="tx"><b>' + esc(n.subject + ' · ' + n.teacher) + '</b>' +
+      '<div class="mt">' + esc(n.date + '  ' + n.update) + '</div></div></div>').join('') + '</div>';
+  }
+
+  if(b.nextPlan){
+    const nx = b.nextPlan;
+    html += '<div class="card-x" style="margin:14px 0 8px">明日预告</div>' +
+      '<div class="task"><div class="tx"><b>' + esc(nx.wd + ' · ' + nx.pages + ' 页 · 约 ' + nx.hours + 'h') + '</b>' +
+      '<div class="mt">' + esc((nx.segments && nx.segments[0] ? nx.segments[0].title : '') + (nx.segments && nx.segments[1] ? ' ／ ' + nx.segments[1].title : '')) + '</div></div></div>';
+  }
+
+  html += '<div class="note" style="margin-top:14px">' + briefTip(b).map(x=> esc(x)).join('<br>') + '</div>';
+  box.innerHTML = html;
+
+  if(hist && !hist.classList.contains('hidden')){
+    hist.innerHTML = '<div class="card-x" style="margin-bottom:8px">最近 7 天</div>' +
+      days.map(d=> '<button class="btn ghost sm brief-day" data-d="' + d + '" style="margin:0 8px 8px 0' +
+        (d===BRIEF_DATE? ';border-color:var(--navy);color:var(--navy)':'') + '">' + d.slice(5) +
+        (d===t? '（今天）':'') + '</button>').join('');
+  }
+}
+
+function copyBriefText(btn){
+  const b = briefOf(BRIEF_DATE || today());
+  const txt = briefText(b);
+  const done = ()=>{ if(!btn) return; const o = btn.textContent; btn.textContent = '已复制'; setTimeout(()=>{ btn.textContent = o; }, 1600); };
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>{ fallbackCopy(txt); done(); });
+  }else{ fallbackCopy(txt); done(); }
+}
+function fallbackCopy(txt){
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position='fixed'; ta.style.top='-1000px'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  ta.remove();
+}
+
+document.addEventListener('click', function(e){
+  const copy = e.target.closest && e.target.closest('#copyBrief');
+  if(copy){ copyBriefText(copy); return; }
+  const hb = e.target.closest && e.target.closest('#briefHistBtn');
+  if(hb){
+    const hist = document.getElementById('briefHist');
+    if(!hist) return;
+    if(hist.classList.contains('hidden')){ hist.classList.remove('hidden'); BRIEF_DATE = BRIEF_DATE || today(); renderBrief(); }
+    else hist.classList.add('hidden');
+    return;
+  }
+  const day = e.target.closest && e.target.closest('.brief-day');
+  if(day){ BRIEF_DATE = day.getAttribute('data-d'); renderBrief(); }
+});
+
 function renderAll(){
   renderHeader();
   renderOverview();
+  renderBrief();
   renderGantt();
   renderSubjects();
   renderDaily();
