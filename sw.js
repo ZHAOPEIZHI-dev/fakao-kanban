@@ -1,4 +1,4 @@
-const CACHE = 'fakao-v3';
+const CACHE = 'fakao-v4';
 const ASSETS = ['./', './index.html', './manifest.webmanifest',
   './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', e => {

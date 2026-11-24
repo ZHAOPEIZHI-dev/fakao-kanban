@@ -278,6 +278,16 @@ body.scrolled .brand h1{font-size:14.5px}
 /* 独立运行（已添加到主屏）时隐藏提示、去掉额外留白抖动 */
 @media (display-mode:standalone){#a2hs{display:none!important}}
 
+
+/* 资讯极简列表 */
+.nw-row{position:relative;padding:12px 30px 12px 0;border-bottom:1px solid var(--line)}
+.nw-row:last-child{border-bottom:0}
+.nw-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.nw-who{font-weight:650;color:var(--navy);font-size:13.5px}
+.nw-date{font-size:12px;color:var(--muted);white-space:nowrap}
+.nw-up{font-size:13px;color:#4a5a72;line-height:1.6;margin-top:4px}
+.nw-x{position:absolute;right:0;top:9px;border:0;background:none;color:#b9c3d1;font-size:17px;line-height:1;cursor:pointer;padding:2px 5px}
+.nw-x:hover{color:#c0392b}
 </style>
 <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,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">
 <link rel="icon" href="data:image/png;base64,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">
@@ -498,37 +508,23 @@ body.scrolled .brand h1{font-size:14.5px}
     </div>
     <div class="card">
       <div class="card-h">
-        <div class="card-t">有用讯息</div>
-        <div class="card-x">只留要点和怎么用 · 每天 09:00 由 Marvis 推送</div>
-      </div>
-      <div class="row" style="margin-bottom:14px">
-        <select class="inp" id="newsFilter" style="width:auto">
-          <option value="">全部类型</option>
-          <option>官方公告</option><option>课程更新</option><option>老师动态</option><option>经验方法</option><option>模考活动</option>
-        </select>
+        <div class="card-t">老师最近更新</div>
+        <div class="card-x">科目老师 + 最近更新</div>
       </div>
       <div id="newsList"></div>
     </div>
     <div class="card">
-      <div class="card-h"><div class="card-t">手动录入资讯</div><div class="card-x">从晨报复制粘贴即可</div></div>
+      <div class="card-h"><div class="card-t">手动加一条更新</div><div class="card-x">只填老师、科目、更新内容</div></div>
       <div class="form">
         <div class="f3">
           <div><label>日期</label><input type="date" class="inp" id="nwDate"></div>
-          <div><label>老师</label><input type="text" class="inp" id="nwSource" placeholder="如 柏浪涛 / 众合教育"></div>
-          <div><label>类型</label>
-            <select class="inp" id="nwType">
-              <option>官方公告</option><option>课程更新</option><option>老师动态</option><option>经验方法</option><option>模考活动</option>
-            </select>
-          </div>
+          <div><label>老师</label><input type="text" class="inp" id="nwTeacher" placeholder="如 柏浪涛"></div>
+          <div><label>科目</label><input type="text" class="inp" id="nwSubject" placeholder="如 刑法"></div>
         </div>
-        <div><label>标题</label><input type="text" class="inp" id="nwTitle" placeholder="一句话说清这条信息"></div>
-        <div class="f2">
-          <div><label>要点</label><input type="text" class="inp" id="nwSummary" placeholder="具体内容"></div>
-          <div><label>对我的影响</label><input type="text" class="inp" id="nwImpact" placeholder="要不要改计划"></div>
-        </div>
-        <div class="row">
-          <button class="btn gold" id="saveNews">加入资讯</button>
-          <select class="inp" id="nwLevel" style="width:auto"><option>重要</option><option>关注</option><option>普通</option></select>
+        <div><label>最近更新</label><input type="text" class="inp" id="nwUpdate" placeholder="一句话说清更新了什么"></div>
+        <div class="row"><button class="btn gold" id="saveNews">加入</button></div>
+      </div>
+    </div>
         </div>
       </div>
     </div>
@@ -694,16 +690,16 @@ let S = load();
 
 /* ===== Marvis 2026-11-22 注入：老师社媒账号 + 资讯（按 id 去重，不动已有打卡/错题数据） ===== */
 const ACCOUNTS_SEED = [{"id":"a_renzhuangshi","subject":"民法","teacher":"任壮石","way":"B站直播间「法考讲师任壮石」+ 众合公开课","key":"以讲义书页进度为准，直播只作二次巩固","stage":"当前（11-21 起）"},{"id":"a_bailangtao","subject":"刑法","teacher":"柏浪涛","way":"众合教育号 / 竹马 APP；微博 @柏浪涛的刑法观","key":"精讲课只在众合教育号，个人搬运号勿跟","stage":"2027-02-01 起"},{"id":"a_daipeng","subject":"民诉","teacher":"戴鹏","way":"众合教育号 / 众合官网","key":"2027 民诉精讲临近 3 月才上线，到时再看","stage":"2027-03-08 起"},{"id":"a_wenyunyun","subject":"刑诉","teacher":"温云云","way":"B站「刑诉法学温云云」","key":"跟进刑诉法修订与认罪认罚新规，3 月底对照讲义","stage":"2027-03-29 起"},{"id":"a_liuanqi","subject":"商法","teacher":"刘安琪","way":"B站「商经法刘安琪」（已认证）+ 觉晓 APP","key":"觉晓「卷二总动员」体系内","stage":"2027-04-19 起"},{"id":"a_lijia","subject":"行政法","teacher":"李佳","way":"众合教育号","key":"B站同名个人号是仿冒，别关注","stage":"2027-05-03 起"},{"id":"a_zhaomingyang","subject":"三国法","teacher":"赵明阳","way":"B站「三国法赵明阳」","key":"暑期带背系列正合背诵阶段","stage":"2027-05-31 起"},{"id":"a_yanmengxuan","subject":"经知环劳","teacher":"鄢梦萱","way":"B站「商经法鄢梦萱」","key":"⚠ 疑似已转厚大、7 月后停更，6 月前必须确认 2027 课程归属再定跟谁","stage":"2027-06-14 起"},{"id":"a_duhongbo","subject":"理论法","teacher":"杜洪波","way":"B站「法学理论杜洪波」","key":"认准主号，法硕小号不看","stage":"2027-07-05 起"},{"id":"a_zhonghe","subject":"众合（机构）","teacher":"众合教育","way":"zhongheschool.com / 竹马 APP / B站众合教育","key":"民法、刑法、民诉、刑诉四科都在这","stage":"全程"},{"id":"a_juexiao","subject":"觉晓（机构）","teacher":"觉晓法考","way":"觉晓 APP / B站觉晓法考","key":"商法、三国法（卷二总动员）在这","stage":"2027-04-19 起"}];
-const NEWS_SEED = [{"id":"n_mv_01","date":"2026-11-22","teacher":"司法部","type":"官方公告","level":"重要","title":"2027 法考时间轴：预计 6 月中旬报名、9 月中旬客观题、10 月中旬主观题","point":"按 2025、2026 两年规律：公告 6 月上旬发布，客观题报名 6 月中旬约 15 天，客观题 9 月中旬分两批机考，主观题 10 月中旬。唯一入口 moj.gov.cn，无补报名。","impact":"报名期落在经知环劳阶段，当天只花 1 小时，别占学习日"},{"id":"n_mv_02","date":"2026-11-02","teacher":"柏浪涛","type":"课程更新","level":"重要","title":"2027 刑法精讲卷 11-02 开更，配套图书同步预售","point":"2027 刑法精讲卷课程已开更，听课走众合官网、竹马 APP。","impact":"你 2027-02-01 开刑法，届时已更新近 3 个月，可「听一节过一节」，不用追更"},{"id":"n_mv_03","date":"2026-11-22","teacher":"柏浪涛、戴鹏、李佳","type":"老师动态","level":"重要","title":"这三科没有独立课程号，精讲课统一在「众合教育」号","point":"柏浪涛、戴鹏、李佳的个人号只有碎片内容，三科精讲课统一在「众合教育」号，按「2027 精讲卷 + 科目」检索；B站同名个人号多为搬运或仿冒。","impact":"别再搜老师个人号，刑法/民诉/行政法直接进众合教育号"},{"id":"n_mv_04","date":"2026-11-19","teacher":"温云云","type":"老师动态","level":"关注","title":"刑诉法修订新变化 + 认罪认罚新规系列连更","point":"11-19 讲《刑诉法修订新变化》，10 月起连更「认罪认罚新规」系列，更新稳定。","impact":"刑诉 03-29 才开始，现在只收藏；3 月底按修订点对照精讲卷"},{"id":"n_mv_05","date":"2026-11-22","teacher":"八科老师","type":"老师动态","level":"重要","title":"八科老师分属两家机构，鄢梦萱疑已离开众合","point":"众合 4 人：任壮石、柏浪涛、戴鹏、温云云；觉晓 2 人：刘安琪、赵明阳；鄢梦萱疑转厚大、7 月后停更；杜洪波跨机构多号。","impact":"听课渠道要分平台：众合走官网/竹马，觉晓走觉晓 APP，一家 APP 听不全八科"},{"id":"n_mv_06","date":"2026-11-23","teacher":"徐光华等 6 人","type":"模考活动","level":"关注","title":"觉晓「命题新趋势」6 场名师直播，11-17 至 11-26 每晚 19:00","point":"韩心怡民诉、刘安琪商经、李劲松民法、徐光华刑法、夏昊晗民法、肖沛权刑诉，各一场。","impact":"11-24 徐光华刑法专场可听一次摸风向；但别为直播打乱民法主线，听不到等回放"},{"id":"n_mv_07","date":"2026-11-02","teacher":"众合教育","type":"经验方法","level":"重要","title":"精讲阶段官方方法：合同编学完之前不要急着做题","point":"现在题目综合性强，单学一个专题一定做不对；精讲阶段只干三件事——打基础、树体系、懂法理。","impact":"民法上册单章学完只做配套小练，成套真题留到合同编学完（约 12 月下旬）"},{"id":"n_mv_08","date":"2026-11-22","teacher":"刑法修正案（十二）","type":"经验方法","level":"重要","title":"修正案（十二）是分论必考点：民企三罪 + 行贿七类从重","point":"2024-03-01 施行：非法经营同类营业罪等三罪扩至民企内部人员；行贿罪新增七类从重；单位行贿条文修改。","impact":"对应刑法分论第二十一讲、第二十三讲；2027 版讲义已按新法修订，26 版笔记这两讲不能抄"},{"id":"n_mv_09","date":"2026-11-19","teacher":"夏昊晗","type":"课程更新","level":"关注","title":"觉晓 2027 客观题民法一轮公开课更新中","point":"民法一轮公开课带字幕连载中，未完结。","impact":"你民法跟任壮石，这个只作第二视角查漏，不另起体系、不换老师"},{"id":"n_mv_10","date":"2026-11-22","teacher":"任壮石","type":"课程更新","level":"关注","title":"任壮石 B 站持续直播《27 法考民法基础精讲》","point":"直播与你的民法精讲同步推进，可作为当周内容的二次巩固。","impact":"以讲义书页进度为准，直播不追"},{"id":"n_mv_11","date":"2026-11-22","teacher":"温云云、刘安琪、赵明阳、杜洪波","type":"老师动态","level":"关注","title":"可长期跟的 4 个老师号，与你的后段科目一一对应","point":"刑诉看温云云、商法看刘安琪、三国看赵明阳、理论法看杜洪波，四人都按自己的科目稳定更新。","impact":"收藏即可：03-29 / 04-19 / 05-31 / 07-05 各阶段再打开"}];
-/* 种子版本化：v2 = 资讯与老师表精简版（去掉粉丝、来源、碎片描述），保留打卡/错题等个人数据 */
+const NEWS_SEED = [{"id":"n_mv_01","date":"2026-11-22","teacher":"司法部","subject":"全科","update":"2027 时间轴：6 月中旬报名、9 月中旬客观题、10 月中旬主观题"},{"id":"n_mv_02","date":"2026-11-02","teacher":"柏浪涛","subject":"刑法","update":"2027 刑法精讲卷 11-02 开更，听课走众合官网、竹马 APP"},{"id":"n_mv_03","date":"2026-11-22","teacher":"柏浪涛 / 戴鹏 / 李佳","subject":"刑法·民诉·行政法","update":"三科精讲课统一在「众合教育」号，按「2027 精讲卷 + 科目」检索"},{"id":"n_mv_04","date":"2026-11-19","teacher":"温云云","subject":"刑诉","update":"刑诉法修订新变化 + 认罪认罚新规系列连更，10 月起"},{"id":"n_mv_05","date":"2026-11-22","teacher":"鄢梦萱","subject":"经知环劳","update":"疑转厚大、7 月后停更，6 月前必须确认 2027 课程归属"},{"id":"n_mv_06","date":"2026-11-23","teacher":"徐光华 / 韩心怡 / 刘安琪 等 6 人","subject":"多科","update":"觉晓「命题新趋势」6 场直播，11-17 至 11-26 每晚 19:00"},{"id":"n_mv_07","date":"2026-11-02","teacher":"众合教育","subject":"全科","update":"精讲阶段方法：合同编学完之前不要急着做题"},{"id":"n_mv_08","date":"2026-11-22","teacher":"柏浪涛","subject":"刑法","update":"刑法修正案（十二）已入讲义：民企三罪 + 行贿七类从重，2024-03-01 施行"},{"id":"n_mv_09","date":"2026-11-19","teacher":"夏昊晗","subject":"民法","update":"觉晓 2027 客观题民法一轮公开课连载中，未完结"},{"id":"n_mv_10","date":"2026-11-22","teacher":"任壮石","subject":"民法","update":"B 站持续直播《27 法考民法基础精讲》"},{"id":"n_mv_11","date":"2026-11-22","teacher":"温云云 / 刘安琪 / 赵明阳 / 杜洪波","subject":"多科","update":"四人按各自科目稳定更新，可长期跟"}];
+/* 种子版本化：v3 = 资讯只保留科目老师 + 最近更新 */
 (function seedUpgrade(){
   var VK = KEY + '_seedver';
   var ver = null;
   try{ ver = localStorage.getItem(VK); }catch(e){}
-  if(ver === '2') return;
+  if(ver === '3') return;
   S.news = NEWS_SEED.map(function(n){ return Object.assign({}, n); });
   S.accounts = ACCOUNTS_SEED.map(function(a){ return Object.assign({}, a); });
-  try{ localStorage.setItem(VK, '2'); }catch(e){}
+  try{ localStorage.setItem(VK, '3'); }catch(e){}
   save();
 })();
 function renderAccounts(){
@@ -1407,27 +1403,18 @@ function cleanNewsText(s){
 function renderNews(){
   const box = document.getElementById('newsList');
   if(!box) return;
-  const f = document.getElementById('newsFilter').value;
   let list = (S.news||[]).slice().sort((a,b)=> a.date<b.date?1:-1);
-  if(f) list = list.filter(n=>n.type===f);
   if(!list.length){
-    box.innerHTML = '<div class="empty">暂无资讯。每天 09:00 Marvis 会推送聚合结果，你也可以在下方手动录入。</div>';
+    box.innerHTML = '<div class="empty">暂无更新。每天 09:00 Marvis 会推送。</div>';
     renderAccounts();
     return;
   }
   box.innerHTML = list.map(n=>{
-    const cls = n.level==='重要'?'cs':(n.level==='关注'?'bs':'gray');
-    const who = n.teacher || n.source || '';
-    const point = n.point ? n.point : cleanNewsText(n.summary);
-    const impact = n.impact ? cleanNewsText(n.impact) : '';
-    return '<div style="border:1px solid var(--line);border-radius:11px;padding:14px 16px;margin-bottom:10px">'+
-      '<div class="row" style="justify-content:space-between;margin-bottom:6px">'+
-        '<span class="tag '+cls+'">'+esc(n.level)+' · '+esc(n.type)+'</span>'+
-        '<span style="font-size:12px;color:var(--navy);font-weight:600">'+esc(who)+(who?' · ':'')+'<span style="color:var(--muted);font-weight:400">'+n.date+'</span></span></div>'+
-      '<div style="font-weight:650;color:var(--navy);margin-bottom:5px">'+esc(n.title)+'</div>'+
-      (point?'<div style="font-size:13px;color:#4a5a72;line-height:1.65">'+esc(point)+'</div>':'')+
-      (impact?'<div style="font-size:12.5px;color:var(--gold);margin-top:7px;line-height:1.6">怎么用：'+esc(impact)+'</div>':'')+
-      '<div class="row" style="margin-top:8px"><button class="btn danger sm" data-delnews="'+n.id+'">删除</button></div>'+
+    const who = (n.subject ? n.subject + ' · ' : '') + (n.teacher||'');
+    return '<div class="nw-row">'+
+      '<div class="nw-h"><span class="nw-who">'+esc(who)+'</span><span class="nw-date">'+esc(n.date)+'</span></div>'+
+      '<div class="nw-up">'+esc(n.update||n.point||'')+'</div>'+
+      '<button class="nw-x" data-delnews="'+n.id+'" title="删除">×</button>'+
     '</div>';
   }).join('');
   renderAccounts();
@@ -1567,26 +1554,20 @@ $('#saveMis').addEventListener('click', ()=>{
   renderMistakes(); renderOverview();
 });
 $('#msFilter').addEventListener('change', renderMistakes);
-if(document.getElementById('newsFilter')) document.getElementById('newsFilter').addEventListener('change', renderNews);
 if(document.getElementById('nwDate')) document.getElementById('nwDate').value = today();
 if(document.getElementById('saveNews')) document.getElementById('saveNews').addEventListener('click', ()=>{
-  const ti = document.getElementById('nwTitle').value.trim();
-  if(!ti){ alert('请填写标题'); return; }
+  const up = document.getElementById('nwUpdate').value.trim();
+  if(!up){ alert('请填写更新内容'); return; }
   S.news = S.news || [];
   S.news.push({
     id:'n'+Date.now(),
     date: document.getElementById('nwDate').value || today(),
-    teacher: document.getElementById('nwSource').value.trim(),
-    type: document.getElementById('nwType').value,
-    title: ti,
-    point: document.getElementById('nwSummary').value.trim(),
-    impact: document.getElementById('nwImpact').value.trim(),
-    level: document.getElementById('nwLevel').value
+    teacher: document.getElementById('nwTeacher').value.trim(),
+    subject: document.getElementById('nwSubject').value.trim(),
+    update: up
   });
   save();
-  document.getElementById('nwTitle').value='';
-  document.getElementById('nwSummary').value='';
-  document.getElementById('nwImpact').value='';
+  document.getElementById('nwUpdate').value='';
   renderNews();
 });
 
