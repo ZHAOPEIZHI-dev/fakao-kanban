@@ -346,8 +346,9 @@ body.scrolled .brand h1{font-size:14.5px}
         <div class="d" id="s1d">--</div>
       </div>
       <div class="stat">
-        <div class="k">今日目标 / 已学</div>
+        <div class="k">今日打卡进度</div>
         <div class="v"><span id="s2">0</span><small id="s2t">/ 3h</small></div>
+        <div class="bar" id="s2bar"><i style="width:0%"></i></div>
         <div class="d" id="s2d">尚未打卡</div>
       </div>
       <div class="stat">
@@ -375,14 +376,22 @@ body.scrolled .brand h1{font-size:14.5px}
     </div>
 
     <div class="card">
+      <div class="card-h">
+        <div class="card-t">打卡进度</div>
+        <div class="card-x" id="logMeta">--</div>
+      </div>
+      <div id="logPanel"></div>
+    </div>
+
+    <div class="card">
       <div class="card-h"><div class="card-t">当前阶段进度</div></div>
       <div id="stageBox"></div>
     </div>
 
     <div class="card">
       <div class="card-h">
-        <div class="card-t">最近打卡</div>
-        <div class="card-x">每晚 22:00 提醒打卡</div>
+        <div class="card-t">打卡明细</div>
+        <div class="card-x">今日记录排最前 · 每晚 22:00 提醒</div>
       </div>
       <div id="recentLog"></div>
     </div>
@@ -482,15 +491,15 @@ body.scrolled .brand h1{font-size:14.5px}
   <div id="v-news" class="hidden">
     <div class="card">
       <div class="card-h">
-        <div class="card-t">老师社媒账号直通表</div>
-        <div class="card-x">2026-11-22 逐一进 B 站/微博核实；查不到的写「未核实」，不做猜测</div>
+        <div class="card-t">老师账号速查</div>
+        <div class="card-x">只看在哪听、什么时候用</div>
       </div>
       <div id="accList"></div>
     </div>
     <div class="card">
       <div class="card-h">
-        <div class="card-t">资讯聚合看板</div>
-        <div class="card-x">每天 09:00 由 Marvis 推送，可手动补充</div>
+        <div class="card-t">有用讯息</div>
+        <div class="card-x">只留要点和怎么用 · 每天 09:00 由 Marvis 推送</div>
       </div>
       <div class="row" style="margin-bottom:14px">
         <select class="inp" id="newsFilter" style="width:auto">
@@ -505,7 +514,7 @@ body.scrolled .brand h1{font-size:14.5px}
       <div class="form">
         <div class="f3">
           <div><label>日期</label><input type="date" class="inp" id="nwDate"></div>
-          <div><label>来源</label><input type="text" class="inp" id="nwSource" placeholder="众合官网 / 觉晓 / 微博"></div>
+          <div><label>老师</label><input type="text" class="inp" id="nwSource" placeholder="如 柏浪涛 / 众合教育"></div>
           <div><label>类型</label>
             <select class="inp" id="nwType">
               <option>官方公告</option><option>课程更新</option><option>老师动态</option><option>经验方法</option><option>模考活动</option>
@@ -684,43 +693,43 @@ const DAILY_PLAN = [{"date":"2026-11-21","wd":"周六","part":"上册","type":"n
 let S = load();
 
 /* ===== Marvis 2026-11-22 注入：老师社媒账号 + 资讯（按 id 去重，不动已有打卡/错题数据） ===== */
-const ACCOUNTS_SEED = [{"id": "a_renzhuangshi", "subject": "民法", "teacher": "任壮石", "weibo": "未核实", "bili": "法考讲师任壮石（B站直播间 1809233403，直播《27法考民法基础精讲》）", "fans": "未核实", "latest": "直播/课程：27 法考民法基础精讲（持续）", "note": "2027 民法专题讲座精讲卷在众合公开课上架；B站未找到带认证的个人空间，以直播间为准", "verified": false}, {"id": "a_bailangtao", "subject": "刑法", "teacher": "柏浪涛", "weibo": "@柏浪涛的刑法观", "bili": "无独立官方号 → 课程由「众合教育」（UID 417302260）发布", "fans": "众合教育 190.2 万", "latest": "2027 法考客观题【精讲卷】刑法 众合柏浪涛（更新中，11-02 起更，71.7 万播放）", "note": "B站搜到的「法考刑法柏浪涛」等为个人搬运号，勿跟；精讲课只在众合教育号", "verified": true}, {"id": "a_daipeng", "subject": "民诉", "teacher": "戴鹏", "weibo": "未核实（众合官微转发为主）", "bili": "无独立官方号，课程在「众合教育」号", "fans": "—", "latest": "2027 民诉精讲待上线（民诉阶段 03-08 才开始，届时再看）", "note": "B站搜到的「戴鹏」相关号仅 120 余粉，非官方，注意区分", "verified": true}, {"id": "a_wenyunyun", "subject": "刑诉", "teacher": "温云云", "weibo": "未核实", "bili": "刑诉法学温云云（UID 1892733619）", "fans": "8844", "latest": "11-19《刑诉法修订新变化！》；10 月起连续更新「认罪认罚新规」系列", "note": "无平台认证，但简介为刑诉法讲师/律师/高校副教授，更新稳定；刑诉阶段 03-29 起，先收藏", "verified": true}, {"id": "a_liuanqi", "subject": "商法", "teacher": "刘安琪", "weibo": "未核实", "bili": "商经法刘安琪（UID 394106996，个人认证「商法刘安琪」）", "fans": "18.9 万", "latest": "10-19《2026 商法主观题：唯一的监事被罢免，无需继续履职》", "note": "属觉晓体系（卷二总动员组合）；商法阶段 04-19 起用", "verified": true}, {"id": "a_lijia", "subject": "行政法", "teacher": "李佳", "weibo": "未核实（曾多次获微博十大教育大 V）", "bili": "无独立官方号，课程在「众合教育」号", "fans": "—", "latest": "2026 法考主观题冲刺版行政法（众合教育号，已完结）", "note": "B站「行政法李佳」312 粉 0 视频为仿冒号；行政法阶段 05-03 起", "verified": true}, {"id": "a_zhaomingyang", "subject": "三国法", "teacher": "赵明阳", "weibo": "三国法赵明阳", "bili": "三国法赵明阳（UID 498293883）", "fans": "1.5 千（视频 61 条）", "latest": "暑期带背 Day60《WTO 的争端解决机制》08-30 收尾", "note": "属觉晓体系；三国法阶段 05-31 起，带背系列正合适背诵阶段", "verified": true}, {"id": "a_yanmengxuan", "subject": "经知环劳", "teacher": "鄢梦萱", "weibo": "未核实", "bili": "商经法鄢梦萱（UID 526515374）", "fans": "10.6 万", "latest": "07-23《一条视频让你看懂公司间交叉持股》后基本停更", "note": "⚠ B站简介已改为「厚大法考商经独家授课教师」，疑已离开众合体系；距经知环劳阶段（06-14）还有 7 个月，6 月前须确认她 2027 课程归属再定跟谁", "verified": true}, {"id": "a_duhongbo", "subject": "理论法", "teacher": "杜洪波", "weibo": "未核实", "bili": "法学理论杜洪波（UID 574333299）", "fans": "10.2 万", "latest": "10-18《26 法考主观论述题真题回忆版解读》", "note": "另有「杜洪波法硕小课堂」（觉晓法硕）、「法硕理论法杜洪波」（华图）等小号，认准主号；理论法阶段 07-05 起", "verified": true}, {"id": "a_zhonghe", "subject": "机构", "teacher": "众合教育", "weibo": "众合法考教育", "bili": "众合教育（UID 417302260，企业认证）", "fans": "190.2 万", "latest": "11-22《三剑客集结，长春现场热情拉满啦【众合法考高峰论坛】》；11-02 起 2027 刑法精讲卷开更", "note": "你的民法、刑法、民诉、刑诉四科老师都在众合：任壮石、柏浪涛、戴鹏、温云云。听课走众合官网 zhongheschool.com / 竹马 APP / B站众合教育", "verified": true}, {"id": "a_juexiao", "subject": "机构", "teacher": "觉晓法考", "weibo": "觉晓法考教育", "bili": "觉晓法考（UID 367351760）", "fans": "16.1 万", "latest": "11-19《法考 2027 客观题 民法夏昊晗【1 轮公开课-应试解题薄讲义】》（更新中）", "note": "你的商法刘安琪、三国法赵明阳都在觉晓（卷二总动员）；小红书/视频号同名为 @觉晓法考（小红书需登录，粉丝数未核实）", "verified": true}];
-const NEWS_SEED = [{"id": "n_mv_01", "date": "2026-11-22", "source": "司法部 / 中国教育在线（预测）", "type": "官方公告", "level": "重要", "title": "2027 法考时间轴：预计 6 月中旬报名、9 月中旬客观题、10 月中旬主观题", "summary": "参照 2025（6/16–6/30 报名、9 月下旬客观题、10 月下旬主观题）、2026（6/15–6/29 报名、9 月中旬客观题）两年规律推算：2027 公告预计 6 月上旬发布，客观题报名 6 月中旬（约 15 天），客观题 9 月中旬分两批机考，主观题 10 月中旬。唯一官方入口 moj.gov.cn 报名平台，无补报名。", "impact": "你的 8 科精讲+背诵在 7 月 25 日收口，6 月报名期正好落在经知环劳阶段，报名当天只花 1 小时，别让它吃掉学习日"}, {"id": "n_mv_02", "date": "2026-11-02", "source": "众合教育（微博/B站）", "type": "课程更新", "level": "重要", "title": "2027 法考刑法精讲卷课程 11-02 开更，柏浪涛主讲", "summary": "众合官宣 2027 刑法精讲卷课程开始更新，B站「众合教育」同名课程已上线，播放 71.7 万，配套图书同步预售。听课渠道：众合官网、竹马 APP、B站众合教育。", "impact": "你 2027-02-01 开刑法，届时课程更新近 3 个月，基本可「听一节过一节」，不用追更"}, {"id": "n_mv_03", "date": "2026-11-22", "source": "B站实测核实", "type": "老师动态", "level": "重要", "title": "柏浪涛、戴鹏、李佳在 B 站都没有独立官方号，课程只在「众合教育」号", "summary": "逐一搜号核实：柏浪涛仅微博 @柏浪涛的刑法观 有本人动态；B站上「法考刑法柏浪涛」（1 万粉、1 个视频）、「戴鹏相关号」（120 粉）、「行政法李佳」（312 粉、0 视频）均为个人搬运或仿冒。三科精讲课统一在众合教育官方号（UID 417302260，190.2 万粉、企业认证）。", "impact": "别再到处搜老师个人号，刑法/民诉/行政法直接在众合教育号里按「2027 精讲卷+科目」找"}, {"id": "n_mv_04", "date": "2026-11-19", "source": "B站 · 刑诉法学温云云", "type": "老师动态", "level": "关注", "title": "温云云更新《刑诉法修订新变化！》，10 月起连更认罪认罚新规系列", "summary": "B站「刑诉法学温云云」（UID 1892733619，8844 粉）11-19 发布刑诉法修订新变化，此前连续更新认罪认罚从宽新规。账号无平台认证，简介为刑诉法讲师/律师/高校副教授，更新频率稳定。", "impact": "你的刑诉阶段 03-29 才开始，现在只收藏不追；等 3 月底按修订点对照精讲卷"}, {"id": "n_mv_05", "date": "2026-11-22", "source": "B站核实", "type": "老师动态", "level": "重要", "title": "注意：你的八科老师分属三家机构——众合 4 科、觉晓 2 科、鄢梦萱疑已转厚大", "summary": "众合：任壮石（民法）、柏浪涛（刑法）、戴鹏（民诉）、温云云（刑诉）；觉晓：刘安琪（商法）、赵明阳（三国法，均属「卷二总动员」组合）；鄢梦萱 B 站简介已标「厚大法考商经独家授课教师」，7 月后停更；杜洪波跨机构多号。", "impact": "听课渠道要分开：众合走官网/竹马/B站众合教育，觉晓走觉晓 APP/B站觉晓法考；不要指望一家 APP 听全八科"}, {"id": "n_mv_06", "date": "2026-11-23", "source": "觉晓法考（微博/B站）", "type": "模考活动", "level": "关注", "title": "觉晓「27 考季·命题新趋势」6 场名师直播，11-17 至 11-26", "summary": "11.17 韩心怡民诉、11.18 刘安琪商经、11.19 李劲松民法、11.24 徐光华刑法、11.25 夏昊晗民法、11.26 肖沛权刑诉，每晚 19:00，B站/视频号/小红书 @觉晓法考 同步。", "impact": "11-24 徐光华刑法专场可听一次，提前摸刑法命题风向；但现在是民法期中，别为直播打乱主线，能听则听、听不到等回放"}, {"id": "n_mv_07", "date": "2026-11-02", "source": "众合教育（微博）", "type": "经验方法", "level": "重要", "title": "众合官方精讲阶段方法论：打基础、树体系、懂法理；合同编没学完别急着做题", "summary": "众合微博原文：2027 的同学在精讲书合同编学完之前不要着急做题——现在法考题目综合性强，单独学完一个专题一定做不对题；第一阶段精讲卷的目标只有三个：打基础、树体系、懂法理。「听话照做，一次就过；自以为是，年年考试。」", "impact": "直接对应你现在民法上册：单章学完只做配套小练，成套真题留到合同编整块学完（约 12 月下旬）以后"}, {"id": "n_mv_08", "date": "2026-11-22", "source": "最高人民检察院 / 刑法修正案（十二）", "type": "经验方法", "level": "重要", "title": "刑法修正案（十二）是分论必考点：民企内部腐败三罪 + 行贿七类从重", "summary": "2024-03-01 施行的修正案（十二）：①非法经营同类营业罪、为亲友非法牟利罪、徇私舞弊低价折股出售国有资产罪三项扩至民营企业内部人员；②行贿罪新增七类从重情形（多次/向多人、向国家工作人员、重点工程、买官、向监察司法人员行贿等）；③单位行贿、对单位行贿条文修改。", "impact": "正对应你刑法分论第二十一讲（破坏经济秩序犯罪）与第二十三讲（贪污贿赂罪）；2027 版讲义已按新法修订，26 版笔记此两讲不能再抄"}, {"id": "n_mv_09", "date": "2026-11-19", "source": "B站 · 觉晓法考", "type": "课程更新", "level": "关注", "title": "觉晓 2027 客观题公开课更新中（民法夏昊晗「应试解题薄讲义」）", "summary": "觉晓法考（UID 367351760，16.1 万粉）11-19 更新 2027 客观题民法一轮公开课，夏昊晗主讲，带字幕未完结。", "impact": "你民法跟任壮石，这个只作第二视角查漏，不另起体系、不换老师"}, {"id": "n_mv_10", "date": "2026-11-22", "source": "B站直播 · 法考讲师任壮石", "type": "课程更新", "level": "关注", "title": "任壮石在 B 站有直播《27 法考民法基础精讲》", "summary": "B站直播间「法考讲师任壮石」（房间 1809233403）持续开展 27 法考民法基础精讲直播，与你的民法精讲同步。", "impact": "直播可作为当周进度的二次巩固，但以讲义书页进度为准，直播不追"}, {"id": "n_mv_11", "date": "2026-11-22", "source": "B站核实", "type": "老师动态", "level": "关注", "title": "已核实可长期跟的 4 个老师个人号：温云云、刘安琪、赵明阳、杜洪波", "summary": "刑诉法学温云云（8844 粉）、商经法刘安琪（18.9 万，已认证）、三国法赵明阳（UID 498293883）、法学理论杜洪波（10.2 万）。四人更新与你的后段科目一一对应，可提前关注但不必现在看。", "impact": "收藏即可：03-29 刑诉看温云云、04-19 商法看刘安琪、05-31 三国看赵明阳、07-05 理论法看杜洪波"}];
-(function mergeMarvisSeed(){
-  let ch = false;
-  S.accounts = S.accounts || [];
-  const aids = new Set(S.accounts.map(a=>a.id));
-  ACCOUNTS_SEED.forEach(a=>{ if(!aids.has(a.id)){ S.accounts.push(a); ch = true; } });
-  S.news = S.news || [];
-  const nids = new Set(S.news.map(n=>n.id));
-  NEWS_SEED.forEach(n=>{ if(!nids.has(n.id)){ S.news.push(n); ch = true; } });
-  if(ch) save();
+const ACCOUNTS_SEED = [{"id":"a_renzhuangshi","subject":"民法","teacher":"任壮石","way":"B站直播间「法考讲师任壮石」+ 众合公开课","key":"以讲义书页进度为准，直播只作二次巩固","stage":"当前（11-21 起）"},{"id":"a_bailangtao","subject":"刑法","teacher":"柏浪涛","way":"众合教育号 / 竹马 APP；微博 @柏浪涛的刑法观","key":"精讲课只在众合教育号，个人搬运号勿跟","stage":"2027-02-01 起"},{"id":"a_daipeng","subject":"民诉","teacher":"戴鹏","way":"众合教育号 / 众合官网","key":"2027 民诉精讲临近 3 月才上线，到时再看","stage":"2027-03-08 起"},{"id":"a_wenyunyun","subject":"刑诉","teacher":"温云云","way":"B站「刑诉法学温云云」","key":"跟进刑诉法修订与认罪认罚新规，3 月底对照讲义","stage":"2027-03-29 起"},{"id":"a_liuanqi","subject":"商法","teacher":"刘安琪","way":"B站「商经法刘安琪」（已认证）+ 觉晓 APP","key":"觉晓「卷二总动员」体系内","stage":"2027-04-19 起"},{"id":"a_lijia","subject":"行政法","teacher":"李佳","way":"众合教育号","key":"B站同名个人号是仿冒，别关注","stage":"2027-05-03 起"},{"id":"a_zhaomingyang","subject":"三国法","teacher":"赵明阳","way":"B站「三国法赵明阳」","key":"暑期带背系列正合背诵阶段","stage":"2027-05-31 起"},{"id":"a_yanmengxuan","subject":"经知环劳","teacher":"鄢梦萱","way":"B站「商经法鄢梦萱」","key":"⚠ 疑似已转厚大、7 月后停更，6 月前必须确认 2027 课程归属再定跟谁","stage":"2027-06-14 起"},{"id":"a_duhongbo","subject":"理论法","teacher":"杜洪波","way":"B站「法学理论杜洪波」","key":"认准主号，法硕小号不看","stage":"2027-07-05 起"},{"id":"a_zhonghe","subject":"众合（机构）","teacher":"众合教育","way":"zhongheschool.com / 竹马 APP / B站众合教育","key":"民法、刑法、民诉、刑诉四科都在这","stage":"全程"},{"id":"a_juexiao","subject":"觉晓（机构）","teacher":"觉晓法考","way":"觉晓 APP / B站觉晓法考","key":"商法、三国法（卷二总动员）在这","stage":"2027-04-19 起"}];
+const NEWS_SEED = [{"id":"n_mv_01","date":"2026-11-22","teacher":"司法部","type":"官方公告","level":"重要","title":"2027 法考时间轴：预计 6 月中旬报名、9 月中旬客观题、10 月中旬主观题","point":"按 2025、2026 两年规律：公告 6 月上旬发布，客观题报名 6 月中旬约 15 天，客观题 9 月中旬分两批机考，主观题 10 月中旬。唯一入口 moj.gov.cn，无补报名。","impact":"报名期落在经知环劳阶段，当天只花 1 小时，别占学习日"},{"id":"n_mv_02","date":"2026-11-02","teacher":"柏浪涛","type":"课程更新","level":"重要","title":"2027 刑法精讲卷 11-02 开更，配套图书同步预售","point":"2027 刑法精讲卷课程已开更，听课走众合官网、竹马 APP。","impact":"你 2027-02-01 开刑法，届时已更新近 3 个月，可「听一节过一节」，不用追更"},{"id":"n_mv_03","date":"2026-11-22","teacher":"柏浪涛、戴鹏、李佳","type":"老师动态","level":"重要","title":"这三科没有独立课程号，精讲课统一在「众合教育」号","point":"柏浪涛、戴鹏、李佳的个人号只有碎片内容，三科精讲课统一在「众合教育」号，按「2027 精讲卷 + 科目」检索；B站同名个人号多为搬运或仿冒。","impact":"别再搜老师个人号，刑法/民诉/行政法直接进众合教育号"},{"id":"n_mv_04","date":"2026-11-19","teacher":"温云云","type":"老师动态","level":"关注","title":"刑诉法修订新变化 + 认罪认罚新规系列连更","point":"11-19 讲《刑诉法修订新变化》，10 月起连更「认罪认罚新规」系列，更新稳定。","impact":"刑诉 03-29 才开始，现在只收藏；3 月底按修订点对照精讲卷"},{"id":"n_mv_05","date":"2026-11-22","teacher":"八科老师","type":"老师动态","level":"重要","title":"八科老师分属两家机构，鄢梦萱疑已离开众合","point":"众合 4 人：任壮石、柏浪涛、戴鹏、温云云；觉晓 2 人：刘安琪、赵明阳；鄢梦萱疑转厚大、7 月后停更；杜洪波跨机构多号。","impact":"听课渠道要分平台：众合走官网/竹马，觉晓走觉晓 APP，一家 APP 听不全八科"},{"id":"n_mv_06","date":"2026-11-23","teacher":"徐光华等 6 人","type":"模考活动","level":"关注","title":"觉晓「命题新趋势」6 场名师直播，11-17 至 11-26 每晚 19:00","point":"韩心怡民诉、刘安琪商经、李劲松民法、徐光华刑法、夏昊晗民法、肖沛权刑诉，各一场。","impact":"11-24 徐光华刑法专场可听一次摸风向；但别为直播打乱民法主线，听不到等回放"},{"id":"n_mv_07","date":"2026-11-02","teacher":"众合教育","type":"经验方法","level":"重要","title":"精讲阶段官方方法：合同编学完之前不要急着做题","point":"现在题目综合性强，单学一个专题一定做不对；精讲阶段只干三件事——打基础、树体系、懂法理。","impact":"民法上册单章学完只做配套小练，成套真题留到合同编学完（约 12 月下旬）"},{"id":"n_mv_08","date":"2026-11-22","teacher":"刑法修正案（十二）","type":"经验方法","level":"重要","title":"修正案（十二）是分论必考点：民企三罪 + 行贿七类从重","point":"2024-03-01 施行：非法经营同类营业罪等三罪扩至民企内部人员；行贿罪新增七类从重；单位行贿条文修改。","impact":"对应刑法分论第二十一讲、第二十三讲；2027 版讲义已按新法修订，26 版笔记这两讲不能抄"},{"id":"n_mv_09","date":"2026-11-19","teacher":"夏昊晗","type":"课程更新","level":"关注","title":"觉晓 2027 客观题民法一轮公开课更新中","point":"民法一轮公开课带字幕连载中，未完结。","impact":"你民法跟任壮石，这个只作第二视角查漏，不另起体系、不换老师"},{"id":"n_mv_10","date":"2026-11-22","teacher":"任壮石","type":"课程更新","level":"关注","title":"任壮石 B 站持续直播《27 法考民法基础精讲》","point":"直播与你的民法精讲同步推进，可作为当周内容的二次巩固。","impact":"以讲义书页进度为准，直播不追"},{"id":"n_mv_11","date":"2026-11-22","teacher":"温云云、刘安琪、赵明阳、杜洪波","type":"老师动态","level":"关注","title":"可长期跟的 4 个老师号，与你的后段科目一一对应","point":"刑诉看温云云、商法看刘安琪、三国看赵明阳、理论法看杜洪波，四人都按自己的科目稳定更新。","impact":"收藏即可：03-29 / 04-19 / 05-31 / 07-05 各阶段再打开"}];
+/* 种子版本化：v2 = 资讯与老师表精简版（去掉粉丝、来源、碎片描述），保留打卡/错题等个人数据 */
+(function seedUpgrade(){
+  var VK = KEY + '_seedver';
+  var ver = null;
+  try{ ver = localStorage.getItem(VK); }catch(e){}
+  if(ver === '2') return;
+  S.news = NEWS_SEED.map(function(n){ return Object.assign({}, n); });
+  S.accounts = ACCOUNTS_SEED.map(function(a){ return Object.assign({}, a); });
+  try{ localStorage.setItem(VK, '2'); }catch(e){}
+  save();
 })();
 function renderAccounts(){
   const box = document.getElementById('accList');
   if(!box) return;
   const list = S.accounts || [];
   if(!list.length){ box.innerHTML = '<div class="empty">暂无账号数据</div>'; return; }
+  const th = 'padding:9px 10px;border-bottom:1px solid var(--line)';
   box.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">'+
     '<thead><tr style="text-align:left;color:var(--muted);font-weight:600">'+
-    '<th style="padding:8px 10px;border-bottom:1px solid var(--line)">科目 / 老师</th>'+
-    '<th style="padding:8px 10px;border-bottom:1px solid var(--line)">微博</th>'+
-    '<th style="padding:8px 10px;border-bottom:1px solid var(--line)">B站</th>'+
-    '<th style="padding:8px 10px;border-bottom:1px solid var(--line)">粉丝</th>'+
-    '<th style="padding:8px 10px;border-bottom:1px solid var(--line)">最近更新</th>'+
-    '<th style="padding:8px 10px;border-bottom:1px solid var(--line)">备注</th></tr></thead><tbody>'+
-    list.map(a=>{const warn = /⚠/.test(a.note||'');
+    '<th style="'+th+'">老师（科目）</th>'+
+    '<th style="'+th+'">在哪听 / 看</th>'+
+    '<th style="'+th+'">有用结论</th>'+
+    '<th style="'+th+'">用到时间</th></tr></thead><tbody>'+
+    list.map(a=>{
+      const warn = /⚠/.test(a.key||a.note||'');
+      const way = a.way || a.bili || '';
+      const keytxt = a.key || cleanNewsText(a.note||'');
+      const stage = a.stage || '';
       return '<tr style="'+(warn?'background:#fff8ec':'')+'">'+
-      '<td style="padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap"><b style="color:var(--navy)">'+esc(a.subject)+'</b><br><span style="color:var(--muted)">'+esc(a.teacher)+'</span></td>'+
-      '<td style="padding:9px 10px;border-bottom:1px solid var(--line)">'+esc(a.weibo||'—')+'</td>'+
-      '<td style="padding:9px 10px;border-bottom:1px solid var(--line)">'+esc(a.bili||'—')+'</td>'+
-      '<td style="padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap">'+esc(a.fans||'—')+'</td>'+
-      '<td style="padding:9px 10px;border-bottom:1px solid var(--line)">'+esc(a.latest||'—')+'</td>'+
-      '<td style="padding:9px 10px;border-bottom:1px solid var(--line);color:#4a5a72">'+esc(a.note||'')+'</td></tr>';
+        '<td style="'+th+';white-space:nowrap"><b style="color:var(--navy)">'+esc(a.teacher)+'</b><br><span style="color:var(--muted)">'+esc(a.subject)+'</span></td>'+
+        '<td style="'+th+'">'+esc(way)+'</td>'+
+        '<td style="'+th+';color:#4a5a72">'+esc(keytxt)+'</td>'+
+        '<td style="'+th+';white-space:nowrap;color:var(--muted)">'+esc(stage||'—')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
-
-
 function load(){
   try{
     const raw = localStorage.getItem(KEY);
@@ -805,6 +814,69 @@ function renderHeader(){
   $('#cdWeek').textContent = studyWeeks();
 }
 
+function monthHours(){
+  const m = today().slice(0,7);
+  return Math.round(S.logs.filter(l=>String(l.date).slice(0,7)===m).reduce((a,b)=>a+ +b.hours,0)*10)/10;
+}
+function monthDays(){
+  const m = today().slice(0,7);
+  return new Set(S.logs.filter(l=>String(l.date).slice(0,7)===m).map(l=>l.date)).size;
+}
+function monthTarget(){
+  const t = today();
+  const y = +t.slice(0,4), mo = +t.slice(5,7), d = +t.slice(8,10);
+  let sum = 0;
+  for(let i=1;i<=d;i++){
+    const ds = y+'-'+String(mo).padStart(2,'0')+'-'+String(i).padStart(2,'0');
+    sum += targetHours(ds);
+  }
+  return Math.round(sum*10)/10;
+}
+function weekDays(){
+  const t = pd(today());
+  const dow = t.getDay()===0 ? 6 : t.getDay()-1;
+  const mon = addDays(today(), -dow);
+  return new Set(S.logs.filter(l=>l.date>=mon && l.date<=today()).map(l=>l.date)).size;
+}
+function streakDays(){
+  const set = new Set(S.logs.map(l=>l.date));
+  let d = set.has(today()) ? today() : addDays(today(),-1);
+  let n = 0;
+  while(set.has(d) && n<500){ n++; d = addDays(d,-1); }
+  return n;
+}
+function renderLogPanel(){
+  const box = document.getElementById('logPanel');
+  if(!box) return;
+  const t = today();
+  const th = targetHours(t), dH = todayHours(), wH = weekHours(), mH = monthHours(), mT = monthTarget();
+  const totalH = Math.round(S.logs.reduce((a,b)=>a+ +b.hours,0)*10)/10;
+  const logDays = new Set(S.logs.map(l=>l.date)).size;
+  const avgH = logDays>0 ? Math.round(totalH/logDays*10)/10 : 0;
+  const rows = [
+    ['今日', dH, th, '今日目标 '+th+'h'],
+    ['本周', wH, 25, '周一至今天目标 25h'],
+    ['本月', mH, mT, '本月至今目标 '+mT+'h']
+  ].map(r=>{
+    const pct = r[2]>0 ? clamp(Math.round(r[1]/r[2]*100),0,100) : 0;
+    const cls = pct>=100 ? ' ok' : (pct<50 ? ' warn' : '');
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'+
+        '<b style="color:var(--navy)">'+r[0]+'</b>'+
+        '<span style="font-size:12.5px;color:var(--muted)"><b style="color:var(--navy);font-size:14px">'+r[1]+'</b> / '+r[2]+'h · '+pct+'%</span></div>'+
+      '<div class="bar'+cls+'"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="barlabel" style="margin-bottom:12px"><span>'+r[3]+'</span><span>'+(pct>=100?'已达标':'还差 '+Math.round((r[2]-r[1])*10)/10+'h')+'</span></div>';
+  }).join('');
+  box.innerHTML = rows +
+    '<div class="grid g4" style="margin-top:4px">'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">连续打卡</div><div class="v" style="font-size:20px">'+streakDays()+'<small>天</small></div><div class="d">今天没打不算断</div></div>'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">本月出勤</div><div class="v" style="font-size:20px">'+monthDays()+'<small>天</small></div><div class="d">'+t.slice(0,7)+' 累计 '+mH+'h</div></div>'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">日均时长</div><div class="v" style="font-size:20px">'+avgH+'<small>h</small></div><div class="d">按 '+logDays+' 个打卡日算</div></div>'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">累计投入</div><div class="v" style="font-size:20px">'+totalH+'<small>h</small></div><div class="d">共 '+S.logs.length+' 条记录</div></div>'+
+    '</div>';
+  const meta = document.getElementById('logMeta');
+  if(meta) meta.textContent = '累计 '+S.logs.length+' 条 · '+totalH+'h';
+}
+
 function renderOverview(){
   const cur = currentStage();
   const t = today();
@@ -816,9 +888,17 @@ function renderOverview(){
 
   const th = targetHours(t);
   const done = todayHours();
+  const todayLogs = S.logs.filter(l=>l.date===t);
+  const pct2 = th>0 ? clamp(Math.round(done/th*100),0,100) : 0;
   $('#s2').textContent = Math.round(done*10)/10;
   $('#s2t').textContent = '/ ' + th + 'h';
-  $('#s2d').textContent = done===0 ? '尚未打卡' : (done>=th ? '已达标，保持' : '还差 ' + Math.round((th-done)*10)/10 + 'h');
+  const bar2 = $('#s2bar');
+  if(bar2){
+    bar2.className = 'bar' + ((th>0 && done>=th) ? ' ok' : '');
+    bar2.innerHTML = '<i style="width:'+pct2+'%"></i>';
+  }
+  $('#s2d').textContent = (done===0 ? '尚未打卡' : (done>=th ? '已达标 ' + pct2 + '%' : '还差 ' + Math.round((th-done)*10)/10 + 'h（' + pct2 + '%）')) +
+    ' · 今日打卡 ' + todayLogs.length + ' 条';
 
   const wh = weekHours();
   $('#s3').textContent = wh;
@@ -833,14 +913,23 @@ function renderOverview(){
   renderTasks();
   renderStageBox();
 
-  // 最近打卡
-  const list = S.logs.slice().sort((a,b)=> a.date<b.date?1:-1).slice(0,5);
+  renderLogPanel();
+
+  // 打卡明细
+  const list = S.logs.slice().sort((a,b)=> a.date<b.date?1:-1).slice(0,8);
   if(!list.length){
     $('#recentLog').innerHTML = '<div class="empty">还没有打卡记录，去「打卡记录」页录入第一条</div>';
   }else{
-    $('#recentLog').innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>科目</th><th>章节</th><th>时长</th><th>备注</th></tr></thead><tbody>' +
-      list.map(l=>'<tr><td class="mono">'+l.date+'</td><td>'+esc(l.subject)+'</td><td>'+esc(l.chapter||'—')+
-        '</td><td class="mono">'+l.hours+'h</td><td>'+esc(l.note||'—')+'</td></tr>').join('') + '</tbody></table>';
+    $('#recentLog').innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>科目</th><th>章节</th><th>时长</th><th>听课</th><th>做题</th></tr></thead><tbody>' +
+      list.map(l=>{
+        const isToday = l.date===t;
+        return '<tr'+(isToday?' style="background:#f5f9ff"':'')+'>'+
+          '<td class="mono">'+l.date+(isToday?' <b style="color:var(--gold)">今日</b>':'')+'</td>'+
+          '<td>'+esc(l.subject)+'</td><td>'+esc(l.chapter||'—')+'</td>'+
+          '<td class="mono"><b>'+l.hours+'h</b></td>'+
+          '<td class="mono">'+(l.lec!=null?l.lec+'%':'—')+'</td>'+
+          '<td class="mono">'+(l.quiz!=null?l.quiz+'%':'—')+'</td></tr>';
+      }).join('') + '</tbody></table>';
   }
 }
 
@@ -865,13 +954,13 @@ function renderTasks(){
     list.push({k:'due', w:0.5, tx:'重做到期错题 '+dueN+' 道（三遍滚动）', mt:'去「错题池」页勾掉，别只收藏不做'});
   }
   if(HIDDEN_STAGE.indexOf(cur.id)>=0){
-    list.push({k:'a', w:1, tx:'错题回炉：重做历史错题 40 分钟', mt:'只做错的，不做整章'});
+    list.push({k:'a', w:1, tx:'错题回炉：重做历史错题', mt:'只做错的，不做整章'});
     list.push({k:'b', w:1, tx:'近五年真题套卷 1 套（计时）', mt:'按考试节奏，要计时'});
-    list.push({k:'c', w:0.5, tx:'背诵卷滚动 30 分钟', mt:'理论法 / 三国 / 经知环劳轮换'});
+    list.push({k:'c', w:0.5, tx:'背诵卷滚动', mt:'理论法 / 三国 / 经知环劳轮换'});
   }else{
-    list.push({k:'a', w: Math.min(1.2, th*0.4), tx:'听《'+cur.name+'》'+cur.type+' 约 '+Math.round(Math.min(1.2,th*0.4)*60)+' 分钟', mt:cur.teacher});
-    list.push({k:'b', w: Math.min(0.9, th*0.3), tx:'做《'+cur.name+'》当章真题 约 '+Math.round(Math.min(0.9,th*0.3)*60)+' 分钟', mt:'听完一章当天必做'});
-    list.push({k:'c', w: 0.4, tx:'旧科错题回顾 20 分钟', mt:'压制遗忘'});
+    list.push({k:'a', w: Math.min(1.2, th*0.4), tx:'听《'+cur.name+'》'+cur.type, mt:cur.teacher});
+    list.push({k:'b', w: Math.min(0.9, th*0.3), tx:'做《'+cur.name+'》当章真题', mt:'听完一章当天必做'});
+    list.push({k:'c', w: 0.4, tx:'旧科错题回顾', mt:'压制遗忘'});
   }
   if(pd(t).getDay()===0){
     list.push({k:'d', w:1, tx:'周复盘：本周错题二次重做 + 下周任务确认', mt:'固定动作'});
@@ -1306,6 +1395,15 @@ function initQB(){
 }
 
 /* ================= 资讯 ================= */
+function cleanNewsText(s){
+  return String(s==null?'':s)
+    .replace(/[（(][^（）()]*(粉|UID|未核实|来源不明)[^（）()]*[）)]/g,'')
+    .replace(/[，、]?[^，。；]*(粉|UID\s*\d+|未核实|来源不明)[^，。；]*[，。；]?/g,'')
+    .replace(/[，、]{2,}/g,'，')
+    .replace(/^[，、。\s]+/,'')
+    .replace(/\s{2,}/g,' ')
+    .trim();
+}
 function renderNews(){
   const box = document.getElementById('newsList');
   if(!box) return;
@@ -1314,23 +1412,26 @@ function renderNews(){
   if(f) list = list.filter(n=>n.type===f);
   if(!list.length){
     box.innerHTML = '<div class="empty">暂无资讯。每天 09:00 Marvis 会推送聚合结果，你也可以在下方手动录入。</div>';
+    renderAccounts();
     return;
   }
   box.innerHTML = list.map(n=>{
     const cls = n.level==='重要'?'cs':(n.level==='关注'?'bs':'gray');
+    const who = n.teacher || n.source || '';
+    const point = n.point ? n.point : cleanNewsText(n.summary);
+    const impact = n.impact ? cleanNewsText(n.impact) : '';
     return '<div style="border:1px solid var(--line);border-radius:11px;padding:14px 16px;margin-bottom:10px">'+
       '<div class="row" style="justify-content:space-between;margin-bottom:6px">'+
-        '<span class="tag '+cls+'">'+esc(n.level)+'</span>'+
-        '<span style="font-size:11.5px;color:var(--muted)">'+n.date+' · '+esc(n.source)+' · '+esc(n.type)+'</span></div>'+
-      '<div style="font-weight:650;color:var(--navy);margin-bottom:4px">'+esc(n.title)+'</div>'+
-      '<div style="font-size:13px;color:#4a5a72">'+esc(n.summary||'')+'</div>'+
-      (n.impact?'<div style="font-size:12.5px;color:var(--gold);margin-top:6px">影响：'+esc(n.impact)+'</div>':'')+
+        '<span class="tag '+cls+'">'+esc(n.level)+' · '+esc(n.type)+'</span>'+
+        '<span style="font-size:12px;color:var(--navy);font-weight:600">'+esc(who)+(who?' · ':'')+'<span style="color:var(--muted);font-weight:400">'+n.date+'</span></span></div>'+
+      '<div style="font-weight:650;color:var(--navy);margin-bottom:5px">'+esc(n.title)+'</div>'+
+      (point?'<div style="font-size:13px;color:#4a5a72;line-height:1.65">'+esc(point)+'</div>':'')+
+      (impact?'<div style="font-size:12.5px;color:var(--gold);margin-top:7px;line-height:1.6">怎么用：'+esc(impact)+'</div>':'')+
       '<div class="row" style="margin-top:8px"><button class="btn danger sm" data-delnews="'+n.id+'">删除</button></div>'+
     '</div>';
   }).join('');
   renderAccounts();
 }
-
 function renderSettings(){
   $('#stObj').value = S.examDate;
   $('#stSub').value = S.subjectDate;
@@ -1475,10 +1576,10 @@ if(document.getElementById('saveNews')) document.getElementById('saveNews').addE
   S.news.push({
     id:'n'+Date.now(),
     date: document.getElementById('nwDate').value || today(),
-    source: document.getElementById('nwSource').value.trim() || '手动录入',
+    teacher: document.getElementById('nwSource').value.trim(),
     type: document.getElementById('nwType').value,
     title: ti,
-    summary: document.getElementById('nwSummary').value.trim(),
+    point: document.getElementById('nwSummary').value.trim(),
     impact: document.getElementById('nwImpact').value.trim(),
     level: document.getElementById('nwLevel').value
   });
