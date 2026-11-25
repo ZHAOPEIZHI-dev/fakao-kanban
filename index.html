@@ -356,15 +356,15 @@ body.scrolled .brand h1{font-size:14.5px}
         <div class="d" id="s1d">--</div>
       </div>
       <div class="stat">
-        <div class="k">今日打卡进度</div>
-        <div class="v"><span id="s2">0</span><small id="s2t">/ 3h</small></div>
+        <div class="k">今日学到</div>
+        <div class="v"><span id="s2">—</span><small id="s2t">/ 目标</small></div>
         <div class="bar" id="s2bar"><i style="width:0%"></i></div>
         <div class="d" id="s2d">尚未打卡</div>
       </div>
       <div class="stat">
-        <div class="k">本周累计</div>
-        <div class="v"><span id="s3">0</span><small>h</small></div>
-        <div class="d" id="s3d">目标 25h</div>
+        <div class="k">本周出勤</div>
+        <div class="v"><span id="s3">0</span><small>天</small></div>
+        <div class="d" id="s3d">目标 5 天</div>
       </div>
       <div class="stat">
         <div class="k">总进度</div>
@@ -401,7 +401,7 @@ body.scrolled .brand h1{font-size:14.5px}
 
     <div class="card">
       <div class="card-h">
-        <div class="card-t">打卡进度</div>
+        <div class="card-t">学习进度</div>
         <div class="card-x" id="logMeta">--</div>
       </div>
       <div id="logPanel"></div>
@@ -446,15 +446,15 @@ body.scrolled .brand h1{font-size:14.5px}
         <div class="f3">
           <div><label>日期</label><input type="date" class="inp" id="lgDate"></div>
           <div><label>科目</label><select class="inp" id="lgSub"></select></div>
-          <div><label>学习时长（小时）</label><input type="number" class="inp" id="lgHours" step="0.5" min="0" max="14" placeholder="如 3"></div>
+          <div><label>章节 / 主题</label><input type="text" class="inp" id="lgChap" placeholder="如 第一编·第二章·第一节 权利能力"></div>
         </div>
         <div class="f2">
-          <div><label>章节 / 主题</label><input type="text" class="inp" id="lgChap" placeholder="如 民法总则 第3章 民事法律行为"></div>
-          <div><label>该科听课完成度（%）</label><input type="number" class="inp" id="lgLec" min="0" max="100" placeholder="拖动或输入 0-100"></div>
+          <div><label>今日学到 · 起始页</label><input type="number" class="inp" id="lgFrom" min="1" max="2000" placeholder="如 39"></div>
+          <div><label>今日学到 · 截止页</label><input type="number" class="inp" id="lgTo" min="1" max="2000" placeholder="如 45"></div>
         </div>
         <div class="f2">
-          <div><label>该科做题完成度（%）</label><input type="number" class="inp" id="lgQuiz" min="0" max="100" placeholder="0-100"></div>
           <div><label>备注 / 今日最大盲点</label><input type="text" class="inp" id="lgNote" placeholder="一句话记录"></div>
+          <div></div>
         </div>
         <div class="row"><button class="btn gold" id="saveLog">保存打卡</button></div>
       </div>
@@ -602,9 +602,10 @@ body.scrolled .brand h1{font-size:14.5px}
           <div><label>计划起始日</label><input type="date" class="inp" id="stStart"></div>
         </div>
         <div class="f2">
-          <div><label>工作日每日目标（小时）</label><input type="number" class="inp" id="stWd" step="0.5"></div>
-          <div><label>周末每日目标（小时）</label><input type="number" class="inp" id="stWe" step="0.5"></div>
+          <div><label>工作日每日目标（小时，仅内部测算）</label><input type="number" class="inp" id="stWd" step="0.5"></div>
+          <div><label>周末每日目标（小时，仅内部测算）</label><input type="number" class="inp" id="stWe" step="0.5"></div>
         </div>
+        <div class="note" style="margin:0 0 12px">这两项只用于系统内部测算学习负载与调整章节切分，不在看板任何位置展示。</div>
         <div class="row"><button class="btn gold" id="saveSet">保存设置</button></div>
       </div>
     </div>
@@ -904,6 +905,39 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;
 function isWeekend(s){ const w=pd(s).getDay(); return w===0||w===6; }
 function targetHours(s){ return isWeekend(s) ? +S.hoursWeekend : +S.hoursWorkday; }
 
+/* ===== 章节口径辅助（2026-11-25 改版：只用章节+页码说话，时长仅内部测算） ===== */
+function learnedTo(date){
+  const ls = S.logs.filter(l=>l.date===date && +l.pTo>0);
+  if(!ls.length) return 0;
+  return Math.max.apply(null, ls.map(l=> +l.pTo));
+}
+function learnedFrom(date){
+  const ls = S.logs.filter(l=>l.date===date && +l.pFrom>0);
+  if(!ls.length) return 0;
+  return Math.min.apply(null, ls.map(l=> +l.pFrom));
+}
+function pageRange(from,to){
+  if(!from && !to) return '';
+  if(!from) return 'p.' + to;
+  if(!to || to===from) return 'p.' + from;
+  return 'p.' + from + ' - p.' + to;
+}
+/* 某日计划的主要内容块标题（第X编·第Y章），用于标题行 */
+function chapterHead(plan){
+  if(!plan || !plan.segments || !plan.segments.length) return '';
+  const t = plan.segments[0].title || '';
+  const m = t.split('·');
+  return m.length >= 2 ? (m[0] + '·' + m[1]) : t;
+}
+/* 本周出勤天数（有打卡记录的天数） */
+function weekDays(){
+  const t = today(), dow = pd(t).getDay()===0?6:pd(t).getDay()-1;
+  const mon = addDays(t,-dow);
+  return new Set(S.logs.filter(l=>l.date>=mon && l.date<=t).map(l=>l.date)).size;
+}
+/* 全部打卡天数 */
+function totalLogDays(){ return new Set(S.logs.map(l=>l.date)).size; }
+
 /* ================= 计算 ================= */
 function currentStage(){
   const t = today();
@@ -968,21 +1002,17 @@ function briefOf(date){
   if(!stage && date === today()) stage = currentStage() || null;
   const prev = addDays(date,-1);
   const pLogs = S.logs.filter(l=>l.date===prev);
-  const pHours = Math.round(pLogs.reduce((a,b)=>a+ +b.hours,0)*10)/10;
-  const pTarget = targetHours(prev);
-  const pListen = pLogs.reduce((a,b)=>a+ +b.listen,0);
-  const pQuiz = pLogs.reduce((a,b)=>a+ +b.quiz,0);
+  const pPlan = DAILY_PLAN.find(x=>x.date===prev) || null;
+  const pTo = learnedTo(prev);
+  const pFrom = learnedFrom(prev);
   const dObj = diffDays(date, S.examDate);
   const dSub = diffDays(date, S.subjectDate);
   const nextPlan = DAILY_PLAN.find(function(x){ return x.date>date; }) || null;
-  // 本周累计（以 date 所在周计）
   const wEnd = pd(date), dow = wEnd.getDay()===0?6:wEnd.getDay()-1;
   const mon = addDays(date,-dow);
-  let wSum = 0;
-  S.logs.forEach(l=>{ if(l.date>=mon && l.date<=date) wSum += +l.hours; });
-  wSum = Math.round(wSum*10)/10;
+  const wDays = new Set(S.logs.filter(l=>l.date>=mon && l.date<=date).map(l=>l.date)).size;
   const news = NEWS_SEED.filter(function(n){ return n.date<=date; }).sort(function(a,b){ return a.date<b.date?1:-1; }).slice(0,3);
-  return {date, plan, stage, prev, pLogs, pHours, pTarget, pListen, pQuiz, dObj, dSub, nextPlan, wSum, news, streak: streakFrom(date)};
+  return {date, plan, stage, prev, pLogs, pPlan, pTo, pFrom, dObj, dSub, nextPlan, wDays, news, streak: streakFrom(date)};
 }
 
 function briefText(b){
@@ -992,16 +1022,15 @@ function briefText(b){
   L.push('距客观题 ' + Math.max(0,b.dObj) + ' 天 / 距主观题 ' + Math.max(0,b.dSub) + ' 天');
   L.push('');
   if(b.plan){
-    L.push('今日任务（' + (b.plan.part||'') + ' ' + (b.plan.pages) + ' 页 · 约 ' + b.plan.hours + 'h）');
+    L.push('今日章节（' + (b.plan.part||'') + ' · ' + chapterHead(b.plan) + '）');
     briefPlanSegs(b.plan).forEach((s,i)=> L.push('  ' + (i+1) + '. ' + s.title + (s.pages? '（' + s.pages + '）':'')));
-    L.push('  看讲义 ' + b.plan.read + 'h / 听课 ' + b.plan.listen + 'h / 做题 ' + b.plan.quiz + 'h');
+    L.push('学到 p.' + b.plan.to + ' 为止（今日范围 ' + pageRange(b.plan.from,b.plan.to) + '）');
   }else{
     L.push('今日无当日页计划，按当前阶段「' + (b.stage?b.stage.name:'-') + '」自主推进');
   }
   L.push('');
-  L.push('昨日复盘（' + b.prev + '）：' + (b.pLogs.length? ('打卡 ' + b.pLogs.length + ' 条 ' + b.pHours + 'h / 目标 ' + b.pTarget + 'h') : '无打卡记录')
-      + (b.pLogs.length ? (b.pHours>=b.pTarget ? ' · 已达标' : ' · 差 ' + Math.round((b.pTarget-b.pHours)*10)/10 + 'h') : ''));
-  L.push('连续打卡 ' + b.streak + ' 天 · 本周 ' + b.wSum + 'h / 25h');
+  L.push('昨日推进（' + b.prev + '）：' + (b.pTo ? ('学到 p.' + b.pTo + (b.pPlan? ' / 计划到 p.' + b.pPlan.to : '')) : '无打卡记录'));
+  L.push('连续打卡 ' + b.streak + ' 天 · 本周出勤 ' + b.wDays + ' / 5 天');
   if(b.news.length){
     L.push('');
     L.push('资讯更新');
@@ -1009,25 +1038,28 @@ function briefText(b){
   }
   if(b.nextPlan){
     L.push('');
-    L.push('明日：' + b.nextPlan.wd + ' ' + b.nextPlan.pages + ' 页 · ' + (b.nextPlan.segments[0]? b.nextPlan.segments[0].title : ''));
+    L.push('明日：' + b.nextPlan.wd + ' · ' + chapterHead(b.nextPlan) + ' · ' + pageRange(b.nextPlan.from, b.nextPlan.to));
   }
   return L.join('\n');
 }
 
 function briefTip(b){
   const tips = [];
-  if(b.pLogs.length && b.pHours < b.pTarget){
-    tips.push('昨天差 ' + (Math.round((b.pTarget-b.pHours)*10)/10) + 'h 未达标，今天把补漏塞进通勤和午休两段碎片时间，别攒到周末。');
+  if(b.pPlan && b.pTo){
+    if(b.pTo >= b.pPlan.to){
+      tips.push('昨天推到 p.' + b.pTo + '，按计划收口，今天接着从 p.' + b.pPlan.to + ' 往下走就行。');
+    }else{
+      tips.push('昨天停在 p.' + b.pTo + '，计划该到 p.' + b.pPlan.to + '，今天先把 p.' + (b.pTo+1) + '-p.' + b.pPlan.to + ' 这几页补掉再上新课。');
+    }
   }else if(!b.pLogs.length && b.date > S.startDate){
     tips.push('昨天没有打卡记录。当天任务当天清，回头补的讲义没人替你消化。');
-  }else if(b.pLogs.length && b.pHours >= b.pTarget){
-    tips.push('昨天达标了，节奏保持住，今天先听完对应的精讲再做当章真题。');
   }
   if(b.plan && b.plan.pages >= 10){
-    tips.push('今日 ' + b.plan.pages + ' 页偏多，建议拆成上午、下午、晚上三段，每段结束立刻做 10 道当章题。');
+    tips.push('今日 ' + b.plan.pages + ' 页偏多，拆成上午、下午、晚上三段，每段结束立刻做 10 道当章题。');
   }
+  if(b.plan) tips.push('今天卡在 p.' + b.plan.to + ' 这条线，到了就收工，别乱翻后面的。');
   if(b.streak >= 7) tips.push('已连续打卡 ' + b.streak + ' 天，这是目前最值钱的资产，别断。');
-  if(!tips.length) tips.push('按当日计划推进，学哪门做哪门的题。');
+  if(!tips.length) tips.push('按当日章节推进，学哪门做哪门的题。');
   return tips.slice(0,2);
 }
 
@@ -1047,27 +1079,30 @@ function renderBrief(){
 
   let html = '';
   if(b.plan){
-    html += '<div class="grid g4" style="margin-bottom:14px">' +
-      '<div class="stat"><div class="k">当日页数</div><div class="v">' + b.plan.pages + '<small>页</small></div><div class="d">' + (b.plan.part||'') + ' · ' + dailyTypeLabel(b.plan.type) + '</div></div>' +
-      '<div class="stat"><div class="k">看讲义</div><div class="v">' + b.plan.read + '<small>h</small></div><div class="d">通读＋标注</div></div>' +
-      '<div class="stat"><div class="k">听课</div><div class="v">' + b.plan.listen + '<small>h</small></div><div class="d">' + (b.stage ? b.stage.teacher + ' 精讲对应章节' : '对应章节') + '</div></div>' +
-      '<div class="stat"><div class="k">做题</div><div class="v">' + b.plan.quiz + '<small>h</small></div><div class="d">当章真题</div></div>' +
+    html += '<div class="grid g2" style="margin-bottom:14px">' +
+      '<div class="stat"><div class="k">今日章节</div><div class="v" style="font-size:19px">' + esc(chapterHead(b.plan)) + '</div><div class="d">' + (b.plan.part||'') + ' · ' + dailyTypeLabel(b.plan.type) + ' · ' + b.plan.pages + ' 页</div></div>' +
+      '<div class="stat"><div class="k">学到哪里为止</div><div class="v" style="font-size:19px">p.' + b.plan.to + '</div><div class="d">今日范围 ' + pageRange(b.plan.from, b.plan.to) + '</div></div>' +
       '</div>';
     const segs = briefPlanSegs(b.plan);
     html += segs.map(s=> '<div class="task"><div class="tx"><b>' + esc(s.title) + '</b>' +
       (s.pages? '<div class="mt">' + esc(s.pages) + '</div>' : '') + '</div></div>').join('');
+    if(BRIEF_DATE === t){
+      const lt = learnedTo(t), span = Math.max(1, b.plan.to - b.plan.from + 1);
+      const pct = lt>=b.plan.from ? clamp(Math.round((lt - b.plan.from + 1)/span*100),0,100) : 0;
+      html += '<div style="margin-top:14px"><div class="bar' + (pct>=100?' ok':'') + '"><i style="width:' + pct + '%;"></i></div>' +
+        '<div class="barlabel"><span>p.' + b.plan.from + '</span><span>' + (lt? '已学至 p.' + lt : '未打卡') + '</span><span>p.' + b.plan.to + '</span></div></div>';
+    }
   }else{
     html += '<div class="empty">该日不在每日页计划区间内' + (b.stage? '，按当前阶段「' + esc(b.stage.name) + '」自主推进' : '') + '</div>';
   }
 
   const yState = b.pLogs.length
-    ? ('打卡 ' + b.pLogs.length + ' 条 ' + b.pHours + 'h / 目标 ' + b.pTarget + 'h · ' +
-       (b.pHours>=b.pTarget ? '已达标' : '差 ' + (Math.round((b.pTarget-b.pHours)*10)/10) + 'h'))
+    ? ('学到 p.' + b.pTo + (b.pPlan ? ' / 计划到 p.' + b.pPlan.to + (b.pTo>=b.pPlan.to ? '（到位）' : '（差 ' + (b.pPlan.to-b.pTo) + ' 页）') : ''))
     : '无打卡记录';
-  html += '<table class="tbl" style="margin-top:14px"><thead><tr><th>上一日复盘</th><th>连续打卡</th><th>本周累计</th></tr></thead><tbody><tr>' +
+  html += '<table class="tbl" style="margin-top:14px"><thead><tr><th>上一日推进</th><th>连续打卡</th><th>本周出勤</th></tr></thead><tbody><tr>' +
     '<td>' + esc(b.prev) + ' · ' + esc(yState) + '</td>' +
     '<td>' + b.streak + ' 天</td>' +
-    '<td>' + b.wSum + 'h / 25h</td>' +
+    '<td>' + b.wDays + ' / 5 天</td>' +
     '</tr></tbody></table>';
 
   if(b.news.length){
@@ -1079,8 +1114,8 @@ function renderBrief(){
   if(b.nextPlan){
     const nx = b.nextPlan;
     html += '<div class="card-x" style="margin:14px 0 8px">明日预告</div>' +
-      '<div class="task"><div class="tx"><b>' + esc(nx.wd + ' · ' + nx.pages + ' 页 · 约 ' + nx.hours + 'h') + '</b>' +
-      '<div class="mt">' + esc((nx.segments && nx.segments[0] ? nx.segments[0].title : '') + (nx.segments && nx.segments[1] ? ' ／ ' + nx.segments[1].title : '')) + '</div></div></div>';
+      '<div class="task"><div class="tx"><b>' + esc(nx.wd + ' · ' + chapterHead(nx) + ' · ' + pageRange(nx.from, nx.to)) + '</b>' +
+      '<div class="mt">' + esc(nx.segments.map(s=>s.title).join(' ／ ')) + '</div></div></div>';
   }
 
   html += '<div class="note" style="margin-top:14px">' + briefTip(b).map(x=> esc(x)).join('<br>') + '</div>';
@@ -1185,32 +1220,33 @@ function renderLogPanel(){
   const box = document.getElementById('logPanel');
   if(!box) return;
   const t = today();
-  const th = targetHours(t), dH = todayHours(), wH = weekHours(), mH = monthHours(), mT = monthTarget();
-  const totalH = Math.round(S.logs.reduce((a,b)=>a+ +b.hours,0)*10)/10;
-  const logDays = new Set(S.logs.map(l=>l.date)).size;
-  const avgH = logDays>0 ? Math.round(totalH/logDays*10)/10 : 0;
+  const dep = DAILY_PLAN.find(x=>x.date===t);
+  const lt = learnedTo(t);
+  const wD = weekDays(), mD = monthDays();
   const rows = [
-    ['今日', dH, th, '今日目标 '+th+'h'],
-    ['本周', wH, 25, '周一至今天目标 25h'],
-    ['本月', mH, mT, '本月至今目标 '+mT+'h']
+    ['今日', dep ? ('p.'+dep.from+' → p.'+dep.to) : '无当日页计划', dep ? (lt ? '已到 p.'+lt : '未开始') : '按阶段推进', dep && lt>=dep.to ? 1 : 0],
+    ['本周出勤', wD + ' / 5 天', '周一至今天', wD>=5 ? 1 : 0],
+    ['本月出勤', mD + ' 天', t.slice(0,7), 0]
   ].map(r=>{
-    const pct = r[2]>0 ? clamp(Math.round(r[1]/r[2]*100),0,100) : 0;
-    const cls = pct>=100 ? ' ok' : (pct<50 ? ' warn' : '');
-    return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">'+
+    const okCls = r[3] ? ' ok' : '';
+    const pct = r[3] ? 100 : ((r[0]==='今日' && lt && dep)
+        ? Math.round(clamp((lt-dep.from+1)/Math.max(1,dep.to-dep.from+1),0,1)*100)
+        : (r[0]==='本周出勤' ? Math.round(clamp(wD/5,0,1)*100) : Math.round(clamp(mD/22,0,1)*100)));
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'+
         '<b style="color:var(--navy)">'+r[0]+'</b>'+
-        '<span style="font-size:12.5px;color:var(--muted)"><b style="color:var(--navy);font-size:14px">'+r[1]+'</b> / '+r[2]+'h · '+pct+'%</span></div>'+
-      '<div class="bar'+cls+'"><i style="width:'+pct+'%"></i></div>'+
-      '<div class="barlabel" style="margin-bottom:12px"><span>'+r[3]+'</span><span>'+(pct>=100?'已达标':'还差 '+Math.round((r[2]-r[1])*10)/10+'h')+'</span></div>';
+        '<span style="font-size:12.5px;color:var(--muted)"><b style="color:var(--navy);font-size:14px">'+r[1]+'</b> · '+r[2]+'</span></div>'+
+      '<div class="bar'+okCls+'"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="barlabel" style="margin-bottom:12px"><span>'+pct+'%</span><span>'+(r[3]?'已推进到当日终点':'')+'</span></div>';
   }).join('');
   box.innerHTML = rows +
     '<div class="grid g4" style="margin-top:4px">'+
       '<div class="stat" style="padding:12px 14px"><div class="k">连续打卡</div><div class="v" style="font-size:20px">'+streakDays()+'<small>天</small></div><div class="d">今天没打不算断</div></div>'+
-      '<div class="stat" style="padding:12px 14px"><div class="k">本月出勤</div><div class="v" style="font-size:20px">'+monthDays()+'<small>天</small></div><div class="d">'+t.slice(0,7)+' 累计 '+mH+'h</div></div>'+
-      '<div class="stat" style="padding:12px 14px"><div class="k">日均时长</div><div class="v" style="font-size:20px">'+avgH+'<small>h</small></div><div class="d">按 '+logDays+' 个打卡日算</div></div>'+
-      '<div class="stat" style="padding:12px 14px"><div class="k">累计投入</div><div class="v" style="font-size:20px">'+totalH+'<small>h</small></div><div class="d">共 '+S.logs.length+' 条记录</div></div>'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">本月出勤</div><div class="v" style="font-size:20px">'+mD+'<small>天</small></div><div class="d">'+t.slice(0,7)+'</div></div>'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">累计打卡天</div><div class="v" style="font-size:20px">'+totalLogDays()+'<small>天</small></div><div class="d">共 '+S.logs.length+' 条记录</div></div>'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">今日位置</div><div class="v" style="font-size:20px">'+(lt?('p.'+lt):'—')+'</div><div class="d">'+(dep?('目标 p.'+dep.to):'—')+'</div></div>'+
     '</div>';
   const meta = document.getElementById('logMeta');
-  if(meta) meta.textContent = '累计 '+S.logs.length+' 条 · '+totalH+'h';
+  if(meta) meta.textContent = '累计 '+S.logs.length+' 条 · '+totalLogDays()+' 天';
 }
 
 function renderOverview(){
@@ -1222,23 +1258,26 @@ function renderOverview(){
     (started ? '进行中 ' + diffDays(cur.start,t) + '/' + (diffDays(cur.start,cur.end)+1) + ' 天'
              : '未开始，' + diffDays(t, cur.start) + ' 天后启动');
 
-  const th = targetHours(t);
-  const done = todayHours();
-  const todayLogs = S.logs.filter(l=>l.date===t);
-  const pct2 = th>0 ? clamp(Math.round(done/th*100),0,100) : 0;
-  $('#s2').textContent = Math.round(done*10)/10;
-  $('#s2t').textContent = '/ ' + th + 'h';
+  // 卡2：今日位置（章节口径）
+  const dp = DAILY_PLAN.find(x=>x.date===t);
+  const lt = learnedTo(t);
+  $('#s2').textContent = lt ? ('p.' + lt) : '—';
+  $('#s2t').textContent = dp ? ((lt && lt >= dp.to) ? ' 已达标' : (' → p.' + dp.to)) : ' 无当日计划';
   const bar2 = $('#s2bar');
   if(bar2){
-    bar2.className = 'bar' + ((th>0 && done>=th) ? ' ok' : '');
+    const span = dp ? Math.max(1, dp.to - dp.from + 1) : 0;
+    const pct2 = (dp && lt) ? clamp(Math.round((lt - dp.from + 1)/span*100),0,100) : 0;
+    bar2.className = 'bar' + ((dp && lt>=dp.to) ? ' ok' : '');
     bar2.innerHTML = '<i style="width:'+pct2+'%"></i>';
   }
-  $('#s2d').textContent = (done===0 ? '尚未打卡' : (done>=th ? '已达标 ' + pct2 + '%' : '还差 ' + Math.round((th-done)*10)/10 + 'h（' + pct2 + '%）')) +
-    ' · 今日打卡 ' + todayLogs.length + ' 条';
+  $('#s2d').textContent = dp
+    ? ('今日：' + chapterHead(dp) + '（' + pageRange(dp.from, dp.to) + '）' + (lt ? '' : ' · 未打卡'))
+    : '今日无当日页计划，按当前阶段自主推进';
 
-  const wh = weekHours();
-  $('#s3').textContent = wh;
-  $('#s3d').textContent = '目标 25h';
+  // 卡3：本周出勤
+  const wD = weekDays();
+  $('#s3').textContent = wD;
+  $('#s3d').textContent = '目标 5 天 · 本月 ' + monthDays() + ' 天';
 
   const p = overallProgress();
   $('#s4').textContent = p;
@@ -1256,15 +1295,13 @@ function renderOverview(){
   if(!list.length){
     $('#recentLog').innerHTML = '<div class="empty">还没有打卡记录，去「打卡记录」页录入第一条</div>';
   }else{
-    $('#recentLog').innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>科目</th><th>章节</th><th>时长</th><th>听课</th><th>做题</th></tr></thead><tbody>' +
+    $('#recentLog').innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>科目</th><th>章节</th><th>学到</th></tr></thead><tbody>' +
       list.map(l=>{
         const isToday = l.date===t;
         return '<tr'+(isToday?' style="background:#f5f9ff"':'')+'>'+
           '<td class="mono">'+l.date+(isToday?' <b style="color:var(--gold)">今日</b>':'')+'</td>'+
           '<td>'+esc(l.subject)+'</td><td>'+esc(l.chapter||'—')+'</td>'+
-          '<td class="mono"><b>'+l.hours+'h</b></td>'+
-          '<td class="mono">'+(l.lec!=null?l.lec+'%':'—')+'</td>'+
-          '<td class="mono">'+(l.quiz!=null?l.quiz+'%':'—')+'</td></tr>';
+          '<td class="mono">'+(l.pTo?'<b>p.'+l.pTo+'</b>':'—')+'</td></tr>';
       }).join('') + '</tbody></table>';
   }
 }
@@ -1272,38 +1309,34 @@ function renderOverview(){
 function renderTasks(){
   const t = today();
   const cur = currentStage();
-  const th = targetHours(t);
-  const done = todayHours();
   const key = t;
   if(!S.tasks[key]) S.tasks[key] = {};
   const T = S.tasks[key];
   const list = [];
   const dp = DAILY_PLAN.find(x=>x.date===t);
   if(dp && dp.type==='new' && dp.from){
-    list.push({k:'pg', w:0.1, tx:'今日讲义：p.'+dp.from+'-'+dp.to+'（'+dp.pages+' 页）',
-      mt: dp.segments.map(s=>s.title).join(' ／ ')});
+    list.push({k:'pg', tx: chapterHead(dp) + '（' + pageRange(dp.from, dp.to) + '）',
+      mt: '学到 p.' + dp.to + ' 为止 ／ ' + dp.segments.map(s=>s.title).join(' ／ ')});
   }else if(dp && dp.type==='review'){
-    list.push({k:'pg', w:0.1, tx:'今日：'+dp.segments[0].title, mt:'复盘日，不学新页，把错题打完'});
+    list.push({k:'pg', tx:'今日：' + dp.segments[0].title, mt:'复盘日，不学新页，把错题打完'});
   }
   const dueN = dueList().length;
   if(dueN){
-    list.push({k:'due', w:0.5, tx:'重做到期错题 '+dueN+' 道（三遍滚动）', mt:'去「错题池」页勾掉，别只收藏不做'});
+    list.push({k:'due', tx:'重做到期错题 ' + dueN + ' 道（三遍滚动）', mt:'去「错题池」页勾掉，别只收藏不做'});
   }
   if(HIDDEN_STAGE.indexOf(cur.id)>=0){
-    list.push({k:'a', w:1, tx:'错题回炉：重做历史错题', mt:'只做错的，不做整章'});
-    list.push({k:'b', w:1, tx:'近五年真题套卷 1 套（计时）', mt:'按考试节奏，要计时'});
-    list.push({k:'c', w:0.5, tx:'背诵卷滚动', mt:'理论法 / 三国 / 经知环劳轮换'});
+    list.push({k:'a', tx:'错题回炉：重做历史错题', mt:'只做错的，不做整章'});
+    list.push({k:'b', tx:'近五年真题套卷 1 套（计时）', mt:'按考试节奏，要计时'});
+    list.push({k:'c', tx:'背诵卷滚动', mt:'理论法 / 三国 / 经知环劳轮换'});
   }else{
-    list.push({k:'a', w: Math.min(1.2, th*0.4), tx:'听《'+cur.name+'》'+cur.type, mt:cur.teacher});
-    list.push({k:'b', w: Math.min(0.9, th*0.3), tx:'做《'+cur.name+'》当章真题', mt:'听完一章当天必做'});
-    list.push({k:'c', w: 0.4, tx:'旧科错题回顾', mt:'压制遗忘'});
+    list.push({k:'a', tx:'听《' + cur.name + '》' + cur.type + '：' + (dp ? chapterHead(dp) : '当章'), mt:cur.teacher + ' · 听完以讲完当日章节为界'});
+    list.push({k:'b', tx:'做《' + cur.name + '》当章真题' + (dp ? '（' + chapterHead(dp) + '）' : ''), mt:'听完一章当天必做'});
+    list.push({k:'c', tx:'旧科错题回顾', mt:'压制遗忘'});
   }
   if(pd(t).getDay()===0){
-    list.push({k:'d', w:1, tx:'周复盘：本周错题二次重做 + 下周任务确认', mt:'固定动作'});
+    list.push({k:'d', tx:'周复盘：本周错题二次重做 + 下周任务确认', mt:'固定动作'});
   }
-  // 自定义
-  (T.custom||[]).forEach((c,i)=> list.push({k:'c'+i, w:0, tx:c, mt:'自定义'}));
-  // 额外任务（任务对象里手动加的）
+  (T.custom||[]).forEach((c,i)=> list.push({k:'c'+i, tx:c, mt:'自定义'}));
   list.forEach(x=>{ if(T[x.k]===undefined) T[x.k]=false; });
 
   $('#taskList').innerHTML = list.map(x=>
@@ -1311,8 +1344,7 @@ function renderTasks(){
       '<input type="checkbox" data-k="'+x.k+'" '+(T[x.k]?'checked':'')+'>'+
       '<div class="tx">'+esc(x.tx)+'<div class="mt">'+esc(x.mt)+'</div></div>'+
     '</div>'
-  ).join('') +
-  (done>0 ? '<div class="note" style="margin-top:12px">今日已登记学习 '+Math.round(done*10)/10+' 小时</div>' : '');
+  ).join('');
   save();
 }
 
@@ -1388,7 +1420,7 @@ function renderSubjects(){
 
 function renderLogs(){
   const t = today();
-  if(!$('#lgDate').value) $('#lgDate').value = t;   // 只补默认值，不覆盖用户已选日期（修 v5 切页丢日期）
+  if(!$('#lgDate').value) $('#lgDate').value = t;
   const sel = $('#lgSub');
   sel.innerHTML = S.subjects.filter(x=>HIDDEN_STAGE.indexOf(x.id)<0)
     .map(s=>'<option value="'+s.id+'">'+esc(s.name)+'（'+s.teacher+'）</option>').join('');
@@ -1396,15 +1428,15 @@ function renderLogs(){
   if(cur) sel.value = cur.id;
 
   const logs = S.logs.slice().sort((a,b)=> a.date<b.date?1:-1);
-  const totalH = logs.reduce((a,b)=>a+ +b.hours,0);
-  $('#logSum').textContent = '共 '+logs.length+' 条记录 · 累计 '+Math.round(totalH*10)/10+' 小时';
+  const days = new Set(logs.map(l=>l.date)).size;
+  $('#logSum').textContent = '共 '+logs.length+' 条 · 覆盖 '+days+' 天';
   if(!logs.length){
     $('#logTable').innerHTML = '<div class="empty">暂无记录</div>';
     return;
   }
-  $('#logTable').innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>科目</th><th>章节</th><th>时长</th><th>听课</th><th>做题</th><th>备注</th><th></th></tr></thead><tbody>'+
+  $('#logTable').innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>科目</th><th>章节</th><th>学到</th><th>备注</th><th></th></tr></thead><tbody>'+
     logs.map(l=>'<tr><td class="mono">'+l.date+'</td><td>'+esc(l.subject)+'</td><td>'+esc(l.chapter||'—')+
-      '</td><td class="mono">'+l.hours+'h</td><td class="mono">'+l.lec+'%</td><td class="mono">'+l.quiz+'%</td>'+
+      '</td><td class="mono">'+(l.pTo ? '<b>p.'+l.pTo+'</b>'+(l.pFrom&&l.pFrom!==l.pTo?' <span style="color:var(--muted)">(自 p.'+l.pFrom+')</span>':'') : '—')+'</td>'+
       '<td>'+esc(l.note||'—')+'</td><td><button class="btn danger sm" data-dellog="'+l.id+'">删除</button></td></tr>').join('')+
     '</tbody></table>';
 }
@@ -1470,7 +1502,7 @@ function dailyTypeLabel(t){
 function renderDaily(){
   const t = today();
   const el = document.getElementById('dayMeta');
-  if(el) el.textContent = '上册 37 天 + 下册 35 天，共 ' + DAILY_PLAN.length + ' 天 · 工作日 7 页 / 周末 11 页';
+  if(el) el.textContent = '上册 37 天 + 下册 35 天，共 ' + DAILY_PLAN.length + ' 天 · 按「节」推进，同一节不跨天切开';
   const box = document.getElementById('dayToday');
   if(!box) return;
   const p = DAILY_PLAN.find(x=>x.date===t);
@@ -1481,16 +1513,27 @@ function renderDaily(){
       : '民法全程（上册 p.2-264 + 下册 p.265-455，共 453 页）已于 ' + last.date + ' 收口，2027-02-01 起进入刑法阶段。') + '</div>';
     return;
   }
-  let segHtml = p.segments.map(s=>
+  const lt = learnedTo(t);
+  const span = Math.max(1, p.to - p.from + 1);
+  const donePages = lt>=p.from ? clamp(lt - p.from + 1, 0, span) : 0;
+  const pct = Math.round(donePages/span*100);
+
+  const segHtml = p.segments.map(s=>
     '<div class="task"><div class="tx"><b>' + esc(s.title) + '</b>' +
-    (s.from ? '<div class="mt">讲义 p.' + s.from + (s.to>s.from ? ' - p.' + s.to : '') + '</div>' : '') +
+    (s.from ? '<div class="mt">' + pageRange(s.from, s.to) + '</div>' : '') +
     '</div></div>').join('');
-  box.innerHTML = '<div class="grid g4" style="margin-bottom:16px">' +
-    '<div class="stat"><div class="k">今日页数</div><div class="v">' + p.pages + '<small>页</small></div><div class="d">' + dailyTypeLabel(p.type) + ' · ' + (p.part||'') + '</div></div>' +
-    '<div class="stat"><div class="k">看讲义</div><div class="v">' + p.read + '<small>h</small></div><div class="d">通读＋标注</div></div>' +
-    '<div class="stat"><div class="k">听课</div><div class="v">' + p.listen + '<small>h</small></div><div class="d">' + (p.type==='new' ? '任壮石精讲对应章节' : '按当日任务执行') + '</div></div>' +
-    '<div class="stat"><div class="k">做题</div><div class="v">' + p.quiz + '<small>h</small></div><div class="d">众合APP当章真题</div></div>' +
-  '</div>' + segHtml +
+
+  box.innerHTML = '<div class="grid g2" style="margin-bottom:16px">' +
+    '<div class="stat"><div class="k">今日范围</div><div class="v" style="font-size:21px">' + pageRange(p.from, p.to) + '</div><div class="d">' + (p.part||'') + ' · ' + esc(chapterHead(p)) + ' · 共 ' + p.pages + ' 页</div></div>' +
+    '<div class="stat"><div class="k">今天学到哪里为止</div><div class="v" style="font-size:21px">p.' + p.to + '</div><div class="d">就学到 p.' + p.to + '，下一段从 p.' + (p.to + 1) + ' 起</div></div>' +
+  '</div>' +
+  '<div class="card-x" style="margin:0 0 8px">' + esc(chapterHead(p)) + ' · 今日需学章节</div>' + segHtml +
+  '<div style="margin-top:16px">' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:2px"><b style="color:var(--navy)">今日推进位置</b>' +
+    '<span style="font-size:12px;color:var(--muted)">' + (lt ? '已学至 p.' + lt : '还没打卡') + '</span></div>' +
+    '<div class="bar' + (pct>=100?' ok':'') + '"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="barlabel"><span>p.' + p.from + '</span><span>' + donePages + ' / ' + span + ' 页</span><span>p.' + p.to + '</span></div>' +
+  '</div>' +
   '<div class="note" style="margin-top:14px">学习顺序：<b>先看讲义划重点 → 再听课对理解 → 最后立刻做题</b>。当天错题当晚录入错题池，3 天后与 7 天后各重做一次。</div>';
 }
 
@@ -1499,7 +1542,7 @@ function renderDailyList(){
   if(!box) return;
   const t = today();
   let lastPart = '';
-  box.innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>周</th><th>内容</th><th>页码</th><th>页数</th><th>预计</th></tr></thead><tbody>' +
+  box.innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>周</th><th>内容</th><th>页码</th><th>页数</th><th>学到</th></tr></thead><tbody>' +
     DAILY_PLAN.map(p=>{
       const hl = p.date===t ? 'background:#fffbef;' : '';
       const segs = p.segments.map(s=>esc(s.title)).join('<br>');
@@ -1511,7 +1554,7 @@ function renderDailyList(){
         head = '<tr><td colspan="6" style="background:#f1f5f9;font-weight:600">' + lastPart + '　' + rng + '　共 ' + cnt + ' 天</td></tr>';
       }
       return head + '<tr style="'+hl+'"><td class="mono">'+p.date+'</td><td>'+p.wd+'</td><td>'+segs+'</td>' +
-        '<td class="mono">'+(p.from?('p.'+p.from+'-'+p.to):'—')+'</td><td class="mono">'+p.pages+'</td><td class="mono">'+p.hours+'h</td></tr>';
+        '<td class="mono">'+(p.from?('p.'+p.from+'-'+p.to):'—')+'</td><td class="mono">'+p.pages+'</td><td class="mono"><b>'+(p.from?('p.'+p.to):'—')+'</b></td></tr>';
     }).join('') + '</tbody></table>';
 }
 
@@ -1812,25 +1855,36 @@ $('#saveLog').addEventListener('click', ()=>{
   const date = $('#lgDate').value || today();
   const sid = $('#lgSub').value;
   const sub = S.subjects.find(x=>x.id===sid);
-  const hours = parseFloat($('#lgHours').value);
   if(!sub){ alert('请选择科目'); return; }
-  if(!hours || hours<=0){ alert('请填写学习时长'); return; }
-  const lec = clamp(parseInt($('#lgLec').value||sub.lec,10)||0, 0, 100);
-  const quiz = clamp(parseInt($('#lgQuiz').value||sub.quiz,10)||0, 0, 100);
+  const dep = DAILY_PLAN.find(x=>x.date===date);
+  const pFrom = parseInt($('#lgFrom').value,10) || (dep ? dep.from : 0);
+  const pTo = parseInt($('#lgTo').value,10) || (dep ? dep.to : 0);
+  if(!pTo){ alert('请填写今日学到的截止页'); return; }
+  if(pFrom && pTo && pTo < pFrom){ alert('截止页不能小于起始页'); return; }
+  // 时长仅内部测算，不在界面呈现
+  const hours = dep ? dep.hours : targetHours(date);
+  // 按页码自动推进该科完成度，无需手填百分比；上下册分别按各自页程换算
+  if(dep){
+    const nm = sub.name || '';
+    const isDown = nm.indexOf('下册')>=0;
+    const pBase = isDown ? 265 : 2;
+    const pEnd  = isDown ? 455 : 264;
+    const pct = clamp(Math.round((pTo - pBase + 1) / Math.max(1, pEnd - pBase + 1) * 100), 0, 100);
+    sub.lec  = Math.max(+sub.lec  || 0, pct);
+    sub.quiz = Math.max(+sub.quiz || 0, pct);
+  }
 
   S.logs.push({
     id: 'l'+Date.now(),
     date: date, subject: sub.name, sid: sid,
     chapter: $('#lgChap').value.trim(),
-    hours: hours, lec: lec, quiz: quiz,
+    pFrom: pFrom, pTo: pTo,
+    hours: hours, lec: sub.lec, quiz: sub.quiz,
     note: $('#lgNote').value.trim()
   });
-  // 更新科目进度（只前进不后退）
-  sub.lec = Math.max(sub.lec, lec);
-  sub.quiz = Math.max(sub.quiz, quiz);
   save();
 
-  $('#lgDate').value = today(); $('#lgHours').value=''; $('#lgChap').value=''; $('#lgLec').value=''; $('#lgQuiz').value=''; $('#lgNote').value='';
+  $('#lgDate').value = today(); $('#lgChap').value=''; $('#lgFrom').value=''; $('#lgTo').value=''; $('#lgNote').value='';
   renderLogs(); renderOverview(); renderSubjects(); renderGantt();
   alert(STORAGE_ERR ? ('已保存（注意：' + STORAGE_ERR + '）') : '已保存，进度已更新，本地存储校验通过');
 });
