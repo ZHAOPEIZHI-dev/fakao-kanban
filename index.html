@@ -929,6 +929,29 @@ function chapterHead(plan){
   const m = t.split('·');
   return m.length >= 2 ? (m[0] + '·' + m[1]) : t;
 }
+/* 页码 → 所属章节全名（如「第一编·第二章·第二节 法人」），任何只显示页码的地方都要带上它 */
+function chapAt(page){
+  page = +page || 0;
+  if(!page) return '';
+  for(let i=0;i<DAILY_PLAN.length;i++){
+    const p = DAILY_PLAN[i];
+    if(!p.segments || !p.segments.length) continue;
+    if(page >= p.from && page <= p.to){
+      for(let j=0;j<p.segments.length;j++){
+        const s = p.segments[j];
+        if(page >= s.from && page <= s.to) return s.title || '';
+      }
+      return p.segments[0].title || '';
+    }
+  }
+  return '';
+}
+/* 章节短名：取最后一个「·」之后的层级，如「第二节 法人」 */
+function chapShort(title){
+  if(!title) return '';
+  const a = String(title).split('·');
+  return a[a.length-1] || String(title);
+}
 /* 本周出勤天数（有打卡记录的天数） */
 function weekDays(){
   const t = today(), dow = pd(t).getDay()===0?6:pd(t).getDay()-1;
@@ -1024,12 +1047,12 @@ function briefText(b){
   if(b.plan){
     L.push('今日章节（' + (b.plan.part||'') + ' · ' + chapterHead(b.plan) + '）');
     briefPlanSegs(b.plan).forEach((s,i)=> L.push('  ' + (i+1) + '. ' + s.title + (s.pages? '（' + s.pages + '）':'')));
-    L.push('学到 p.' + b.plan.to + ' 为止（今日范围 ' + pageRange(b.plan.from,b.plan.to) + '）');
+    L.push('学到 ' + chapAt(b.plan.to) + ' 结束（截至 p.' + b.plan.to + '，今日范围 ' + pageRange(b.plan.from,b.plan.to) + '）');
   }else{
     L.push('今日无当日页计划，按当前阶段「' + (b.stage?b.stage.name:'-') + '」自主推进');
   }
   L.push('');
-  L.push('昨日推进（' + b.prev + '）：' + (b.pTo ? ('学到 p.' + b.pTo + (b.pPlan? ' / 计划到 p.' + b.pPlan.to : '')) : '无打卡记录'));
+  L.push('昨日推进（' + b.prev + '）：' + (b.pTo ? ('学到 ' + chapAt(b.pTo) + ' 的 p.' + b.pTo + (b.pPlan? ' / 计划到 p.' + b.pPlan.to : '')) : '无打卡记录'));
   L.push('连续打卡 ' + b.streak + ' 天 · 本周出勤 ' + b.wDays + ' / 5 天');
   if(b.news.length){
     L.push('');
@@ -1038,7 +1061,7 @@ function briefText(b){
   }
   if(b.nextPlan){
     L.push('');
-    L.push('明日：' + b.nextPlan.wd + ' · ' + chapterHead(b.nextPlan) + ' · ' + pageRange(b.nextPlan.from, b.nextPlan.to));
+    L.push('明日：' + b.nextPlan.wd + ' · ' + chapterHead(b.nextPlan) + ' · ' + pageRange(b.nextPlan.from, b.nextPlan.to) + '（到 ' + chapAt(b.nextPlan.to) + ' 结束）');
   }
   return L.join('\n');
 }
@@ -1057,7 +1080,7 @@ function briefTip(b){
   if(b.plan && b.plan.pages >= 10){
     tips.push('今日 ' + b.plan.pages + ' 页偏多，拆成上午、下午、晚上三段，每段结束立刻做 10 道当章题。');
   }
-  if(b.plan) tips.push('今天卡在 p.' + b.plan.to + ' 这条线，到了就收工，别乱翻后面的。');
+  if(b.plan) tips.push('今天卡在 ' + chapShort(chapAt(b.plan.to)) + '（p.' + b.plan.to + '）这条线，到了就收工，别乱翻后面的。');
   if(b.streak >= 7) tips.push('已连续打卡 ' + b.streak + ' 天，这是目前最值钱的资产，别断。');
   if(!tips.length) tips.push('按当日章节推进，学哪门做哪门的题。');
   return tips.slice(0,2);
@@ -1081,7 +1104,7 @@ function renderBrief(){
   if(b.plan){
     html += '<div class="grid g2" style="margin-bottom:14px">' +
       '<div class="stat"><div class="k">今日章节</div><div class="v" style="font-size:19px">' + esc(chapterHead(b.plan)) + '</div><div class="d">' + (b.plan.part||'') + ' · ' + dailyTypeLabel(b.plan.type) + ' · ' + b.plan.pages + ' 页</div></div>' +
-      '<div class="stat"><div class="k">学到哪里为止</div><div class="v" style="font-size:19px">p.' + b.plan.to + '</div><div class="d">今日范围 ' + pageRange(b.plan.from, b.plan.to) + '</div></div>' +
+      '<div class="stat"><div class="k">学到哪里为止</div><div class="v" style="font-size:19px">' + esc(chapShort(chapAt(b.plan.to))) + ' · p.' + b.plan.to + '</div><div class="d">' + esc(chapAt(b.plan.to)) + ' ／ 今日范围 ' + pageRange(b.plan.from, b.plan.to) + '</div></div>' +
       '</div>';
     const segs = briefPlanSegs(b.plan);
     html += segs.map(s=> '<div class="task"><div class="tx"><b>' + esc(s.title) + '</b>' +
@@ -1090,14 +1113,14 @@ function renderBrief(){
       const lt = learnedTo(t), span = Math.max(1, b.plan.to - b.plan.from + 1);
       const pct = lt>=b.plan.from ? clamp(Math.round((lt - b.plan.from + 1)/span*100),0,100) : 0;
       html += '<div style="margin-top:14px"><div class="bar' + (pct>=100?' ok':'') + '"><i style="width:' + pct + '%;"></i></div>' +
-        '<div class="barlabel"><span>p.' + b.plan.from + '</span><span>' + (lt? '已学至 p.' + lt : '未打卡') + '</span><span>p.' + b.plan.to + '</span></div></div>';
+        '<div class="barlabel"><span>p.' + b.plan.from + '</span><span>' + (lt? '已学至 ' + esc(chapShort(chapAt(lt))) + ' p.' + lt : '未打卡') + '</span><span>' + esc(chapShort(chapAt(b.plan.to))) + ' p.' + b.plan.to + '</span></div></div>';
     }
   }else{
     html += '<div class="empty">该日不在每日页计划区间内' + (b.stage? '，按当前阶段「' + esc(b.stage.name) + '」自主推进' : '') + '</div>';
   }
 
   const yState = b.pLogs.length
-    ? ('学到 p.' + b.pTo + (b.pPlan ? ' / 计划到 p.' + b.pPlan.to + (b.pTo>=b.pPlan.to ? '（到位）' : '（差 ' + (b.pPlan.to-b.pTo) + ' 页）') : ''))
+    ? ('学到 ' + chapShort(chapAt(b.pTo)) + ' p.' + b.pTo + (b.pPlan ? ' / 计划到 p.' + b.pPlan.to + (b.pTo>=b.pPlan.to ? '（到位）' : '（差 ' + (b.pPlan.to-b.pTo) + ' 页）') : ''))
     : '无打卡记录';
   html += '<table class="tbl" style="margin-top:14px"><thead><tr><th>上一日推进</th><th>连续打卡</th><th>本周出勤</th></tr></thead><tbody><tr>' +
     '<td>' + esc(b.prev) + ' · ' + esc(yState) + '</td>' +
@@ -1114,7 +1137,7 @@ function renderBrief(){
   if(b.nextPlan){
     const nx = b.nextPlan;
     html += '<div class="card-x" style="margin:14px 0 8px">明日预告</div>' +
-      '<div class="task"><div class="tx"><b>' + esc(nx.wd + ' · ' + chapterHead(nx) + ' · ' + pageRange(nx.from, nx.to)) + '</b>' +
+      '<div class="task"><div class="tx"><b>' + esc(nx.wd + ' · ' + chapterHead(nx) + ' · ' + pageRange(nx.from, nx.to) + '（到 ' + chapShort(chapAt(nx.to)) + ' 结束）') + '</b>' +
       '<div class="mt">' + esc(nx.segments.map(s=>s.title).join(' ／ ')) + '</div></div></div>';
   }
 
@@ -1224,7 +1247,7 @@ function renderLogPanel(){
   const lt = learnedTo(t);
   const wD = weekDays(), mD = monthDays();
   const rows = [
-    ['今日', dep ? ('p.'+dep.from+' → p.'+dep.to) : '无当日页计划', dep ? (lt ? '已到 p.'+lt : '未开始') : '按阶段推进', dep && lt>=dep.to ? 1 : 0],
+    ['今日', dep ? ('p.'+dep.from+' → p.'+dep.to) : '无当日页计划', dep ? (lt ? ('已到 p.'+lt+'（'+chapShort(chapAt(lt))+'）') : '未开始') : '按阶段推进', dep && lt>=dep.to ? 1 : 0],
     ['本周出勤', wD + ' / 5 天', '周一至今天', wD>=5 ? 1 : 0],
     ['本月出勤', mD + ' 天', t.slice(0,7), 0]
   ].map(r=>{
@@ -1243,7 +1266,7 @@ function renderLogPanel(){
       '<div class="stat" style="padding:12px 14px"><div class="k">连续打卡</div><div class="v" style="font-size:20px">'+streakDays()+'<small>天</small></div><div class="d">今天没打不算断</div></div>'+
       '<div class="stat" style="padding:12px 14px"><div class="k">本月出勤</div><div class="v" style="font-size:20px">'+mD+'<small>天</small></div><div class="d">'+t.slice(0,7)+'</div></div>'+
       '<div class="stat" style="padding:12px 14px"><div class="k">累计打卡天</div><div class="v" style="font-size:20px">'+totalLogDays()+'<small>天</small></div><div class="d">共 '+S.logs.length+' 条记录</div></div>'+
-      '<div class="stat" style="padding:12px 14px"><div class="k">今日位置</div><div class="v" style="font-size:20px">'+(lt?('p.'+lt):'—')+'</div><div class="d">'+(dep?('目标 p.'+dep.to):'—')+'</div></div>'+
+      '<div class="stat" style="padding:12px 14px"><div class="k">今日位置</div><div class="v" style="font-size:17px">'+(lt?(esc(chapShort(chapAt(lt)))+' · p.'+lt):'—')+'</div><div class="d">'+(dep?('目标 ' + esc(chapShort(chapAt(dep.to))) + ' p.' + dep.to):'—')+'</div></div>'+
     '</div>';
   const meta = document.getElementById('logMeta');
   if(meta) meta.textContent = '累计 '+S.logs.length+' 条 · '+totalLogDays()+' 天';
@@ -1262,7 +1285,7 @@ function renderOverview(){
   const dp = DAILY_PLAN.find(x=>x.date===t);
   const lt = learnedTo(t);
   $('#s2').textContent = lt ? ('p.' + lt) : '—';
-  $('#s2t').textContent = dp ? ((lt && lt >= dp.to) ? ' 已达标' : (' → p.' + dp.to)) : ' 无当日计划';
+  $('#s2t').textContent = dp ? ((lt && lt >= dp.to) ? ' 已达标' : (' → ' + chapShort(chapAt(dp.to)) + ' p.' + dp.to)) : ' 无当日计划';
   const bar2 = $('#s2bar');
   if(bar2){
     const span = dp ? Math.max(1, dp.to - dp.from + 1) : 0;
@@ -1270,8 +1293,10 @@ function renderOverview(){
     bar2.className = 'bar' + ((dp && lt>=dp.to) ? ' ok' : '');
     bar2.innerHTML = '<i style="width:'+pct2+'%"></i>';
   }
+  const segNow = lt ? chapAt(lt) : '';
   $('#s2d').textContent = dp
-    ? ('今日：' + chapterHead(dp) + '（' + pageRange(dp.from, dp.to) + '）' + (lt ? '' : ' · 未打卡'))
+    ? ('今日：' + chapterHead(dp) + '（' + pageRange(dp.from, dp.to) + '）' +
+       (lt ? ' · 现在到 ' + chapShort(segNow) + ' p.' + lt : ' · 未打卡'))
     : '今日无当日页计划，按当前阶段自主推进';
 
   // 卡3：本周出勤
@@ -1301,7 +1326,7 @@ function renderOverview(){
         return '<tr'+(isToday?' style="background:#f5f9ff"':'')+'>'+
           '<td class="mono">'+l.date+(isToday?' <b style="color:var(--gold)">今日</b>':'')+'</td>'+
           '<td>'+esc(l.subject)+'</td><td>'+esc(l.chapter||'—')+'</td>'+
-          '<td class="mono">'+(l.pTo?'<b>p.'+l.pTo+'</b>':'—')+'</td></tr>';
+          '<td class="mono">'+(l.pTo?'<b>p.'+l.pTo+'</b>'+(chapAt(l.pTo)?'<div style="font-size:11.5px;color:#8a96a8">'+esc(chapShort(chapAt(l.pTo)))+'</div>':''):'—')+'</td></tr>';
       }).join('') + '</tbody></table>';
   }
 }
@@ -1316,7 +1341,7 @@ function renderTasks(){
   const dp = DAILY_PLAN.find(x=>x.date===t);
   if(dp && dp.type==='new' && dp.from){
     list.push({k:'pg', tx: chapterHead(dp) + '（' + pageRange(dp.from, dp.to) + '）',
-      mt: '学到 p.' + dp.to + ' 为止 ／ ' + dp.segments.map(s=>s.title).join(' ／ ')});
+      mt: '学到 ' + chapAt(dp.to) + ' 结束（p.' + dp.to + ' 为止）'});
   }else if(dp && dp.type==='review'){
     list.push({k:'pg', tx:'今日：' + dp.segments[0].title, mt:'复盘日，不学新页，把错题打完'});
   }
@@ -1436,7 +1461,7 @@ function renderLogs(){
   }
   $('#logTable').innerHTML = '<table class="tbl"><thead><tr><th>日期</th><th>科目</th><th>章节</th><th>学到</th><th>备注</th><th></th></tr></thead><tbody>'+
     logs.map(l=>'<tr><td class="mono">'+l.date+'</td><td>'+esc(l.subject)+'</td><td>'+esc(l.chapter||'—')+
-      '</td><td class="mono">'+(l.pTo ? '<b>p.'+l.pTo+'</b>'+(l.pFrom&&l.pFrom!==l.pTo?' <span style="color:var(--muted)">(自 p.'+l.pFrom+')</span>':'') : '—')+'</td>'+
+      '</td><td class="mono">'+(l.pTo ? '<b>p.'+l.pTo+'</b>'+(chapAt(l.pTo)?'<div style="font-size:11.5px;color:#8a96a8">'+esc(chapShort(chapAt(l.pTo)))+'</div>':'')+(l.pFrom&&l.pFrom!==l.pTo?' <span style="color:var(--muted)">(自 p.'+l.pFrom+')</span>':'') : '—')+'</td>'+
       '<td>'+esc(l.note||'—')+'</td><td><button class="btn danger sm" data-dellog="'+l.id+'">删除</button></td></tr>').join('')+
     '</tbody></table>';
 }
@@ -1525,12 +1550,12 @@ function renderDaily(){
 
   box.innerHTML = '<div class="grid g2" style="margin-bottom:16px">' +
     '<div class="stat"><div class="k">今日范围</div><div class="v" style="font-size:21px">' + pageRange(p.from, p.to) + '</div><div class="d">' + (p.part||'') + ' · ' + esc(chapterHead(p)) + ' · 共 ' + p.pages + ' 页</div></div>' +
-    '<div class="stat"><div class="k">今天学到哪里为止</div><div class="v" style="font-size:21px">p.' + p.to + '</div><div class="d">就学到 p.' + p.to + '，下一段从 p.' + (p.to + 1) + ' 起</div></div>' +
+    '<div class="stat"><div class="k">今天学到哪里为止</div><div class="v" style="font-size:20px">' + esc(chapShort(chapAt(p.to))) + ' · p.' + p.to + '</div><div class="d">' + esc(chapAt(p.to)) + '，下一段从 p.' + (p.to + 1) + ' 起</div></div>' +
   '</div>' +
   '<div class="card-x" style="margin:0 0 8px">' + esc(chapterHead(p)) + ' · 今日需学章节</div>' + segHtml +
   '<div style="margin-top:16px">' +
     '<div style="display:flex;justify-content:space-between;margin-bottom:2px"><b style="color:var(--navy)">今日推进位置</b>' +
-    '<span style="font-size:12px;color:var(--muted)">' + (lt ? '已学至 p.' + lt : '还没打卡') + '</span></div>' +
+    '<span style="font-size:12px;color:var(--muted)">' + (lt ? '已学至 ' + esc(chapShort(chapAt(lt))) + ' p.' + lt : '还没打卡') + '</span></div>' +
     '<div class="bar' + (pct>=100?' ok':'') + '"><i style="width:' + pct + '%"></i></div>' +
     '<div class="barlabel"><span>p.' + p.from + '</span><span>' + donePages + ' / ' + span + ' 页</span><span>p.' + p.to + '</span></div>' +
   '</div>' +
@@ -1554,7 +1579,8 @@ function renderDailyList(){
         head = '<tr><td colspan="6" style="background:#f1f5f9;font-weight:600">' + lastPart + '　' + rng + '　共 ' + cnt + ' 天</td></tr>';
       }
       return head + '<tr style="'+hl+'"><td class="mono">'+p.date+'</td><td>'+p.wd+'</td><td>'+segs+'</td>' +
-        '<td class="mono">'+(p.from?('p.'+p.from+'-'+p.to):'—')+'</td><td class="mono">'+p.pages+'</td><td class="mono"><b>'+(p.from?('p.'+p.to):'—')+'</b></td></tr>';
+        '<td class="mono">'+(p.from?('p.'+p.from+'-'+p.to):'—')+'</td><td class="mono">'+p.pages+'</td>'+
+        '<td>'+(p.from?('<b class="mono">p.'+p.to+'</b><div style="font-size:11.5px;color:#8a96a8">'+esc(chapShort(chapAt(p.to)))+'</div>'):'—')+'</td></tr>';
     }).join('') + '</tbody></table>';
 }
 
