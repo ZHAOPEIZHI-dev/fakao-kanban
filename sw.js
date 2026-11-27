@@ -1,11 +1,11 @@
-/* 2027法考看板 · 离线缓存 Service Worker（相对路径，根目录/子目录均可用） */
-const CACHE = 'fakao-offline-v11';
+﻿/* 2027娉曡€冪湅鏉?路 绂荤嚎缂撳瓨 Service Worker锛堢浉瀵硅矾寰勶紝鏍圭洰褰?瀛愮洰褰曞潎鍙敤锛?*/
+const CACHE = 'fakao-offline-v15';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then(function (c) {
-      // 逐个缓存，单个失败不影响其余
+      // 閫愪釜缂撳瓨锛屽崟涓け璐ヤ笉褰卞搷鍏朵綑
       return Promise.all(['./', './index.html'].map(function (u) {
         return c.add(new Request(u, { cache: 'reload' })).catch(function () {});
       }));
